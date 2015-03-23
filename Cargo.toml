@@ -1,0 +1,12 @@
+[package]
+
+name = "ilc"
+version = "0.0.1"
+authors = ["Till Hoeppner <till@hoeppner.ws>"]
+
+[dependencies]
+regex = "*"
+regex_macros = "*"
+chrono = "*"
+docopt = "*"
+rustc-serialize = "*"
