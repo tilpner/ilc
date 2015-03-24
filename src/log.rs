@@ -23,12 +23,21 @@ pub enum Event {
     },
     Join {
         nick: String,
+        channel: String,
         mask: String,
+        time: i64
+    },
+    Part {
+        nick: String,
+        channel: String,
+        mask: String,
+        reason: String,
         time: i64
     },
     Quit {
         nick: String,
         mask: String,
+        reason: String,
         time: i64
     },
     Nick {
@@ -48,6 +57,10 @@ pub enum Event {
         time: i64
     },
     Topic {
+        topic: String,
+        time: i64
+    },
+    TopicChange {
         new_topic: String,
         time: i64
     },

@@ -8,11 +8,11 @@ extern crate libc;
 extern crate regex;
 
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{ self, BufReader };
 
 use docopt::Docopt;
 
-use ilc::format::{ self, Decode };
+use ilc::format::{ self, Encode, Decode };
 
 static USAGE: &'static str = "
 A converter and statistics utility for IRC log files.
@@ -47,8 +47,10 @@ fn main() {
         for file in args.arg_file {
             let f: BufReader<File> = BufReader::new(File::open(file).unwrap());
             let iter = parser.decode(f);
-            println!("Obtained event iterator");
-            for e in iter { println!("{:?}", e) }
+            let events: Vec<_> = iter.collect();
+            for e in events {
+                parser.encode(io::stdout(), &e.unwrap());
+            }
         }
     }
 }
