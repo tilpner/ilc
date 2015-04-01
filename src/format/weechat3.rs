@@ -34,7 +34,7 @@ impl<R> Iterator for Iter<R> where R: BufRead {
         fn join(s: &[&str]) -> String {
             let len = s.iter().map(|s| s.len()).sum();
             let mut out = s.iter().fold(String::with_capacity(len),
-                                        |mut s, b| { s.push_str(b); s.push(' '); s });
+               |mut s, b| { s.push_str(b); s.push(' '); s });
             out.pop(); out
         }
         fn mask(s: &str) -> String {
@@ -50,9 +50,10 @@ impl<R> Iterator for Iter<R> where R: BufRead {
 
             let tokens = self.buffer.split(|c: char| c.is_whitespace()).collect::<Vec<_>>();
             if log_enabled!(Info) {
-                info!("Parsing {:?}", tokens);
+                info!("Original:  `{}`", self.buffer);
+                info!("Parsing:   {:?}", tokens);
             }
-            match tokens.as_ref() {
+            match tokens[..tokens.len() - 1].as_ref() {
                 [date, time, "-->", nick, host, "has", "joined", channel, _..] => return Some(Ok(Event::Join {
                     nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
                     time: timestamp(date, time)

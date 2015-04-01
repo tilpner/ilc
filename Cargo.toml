@@ -10,3 +10,11 @@ regex_macros = "*"
 chrono = "*"
 docopt = "*"
 rustc-serialize = "*"
+log = "*"
+env_logger = "*"
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+debug-assertions = false
