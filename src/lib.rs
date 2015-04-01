@@ -1,7 +1,9 @@
-#![feature(plugin)]
+#![feature(plugin, slice_patterns, convert, core)]
 #![plugin(regex_macros)]
 extern crate regex;
 extern crate chrono;
+#[macro_use]
+extern crate log as l;
 
 pub mod log;
 pub mod format;

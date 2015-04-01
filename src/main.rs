@@ -3,7 +3,7 @@
 
 extern crate ilc;
 extern crate docopt;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate libc;
 extern crate regex;
 
@@ -14,16 +14,26 @@ use docopt::Docopt;
 
 use ilc::format::{ self, Encode, Decode };
 
-static USAGE: &'static str = "
+static USAGE: &'static str = r#"
+d8b   888
+Y8P   888
+      888
+888   888    .d8888b
+888   888   d88P"
+888   888   888
+888   888   Y88b.
+888   888    "Y8888P
+
 A converter and statistics utility for IRC log files.
 
 Usage:
   ilc parse <file>...
+  ilc
 
 Options:
   -h --help         Show this screen.
   -v --version      Show the version (duh).
-";
+"#;
 
 #[derive(RustcDecodable, Debug)]
 struct Args {
@@ -49,7 +59,7 @@ fn main() {
             let iter = parser.decode(f);
             let events: Vec<_> = iter.collect();
             for e in events {
-                parser.encode(io::stdout(), &e.unwrap());
+                drop(parser.encode(io::stdout(), &e.unwrap()));
             }
         }
     }

@@ -11,6 +11,12 @@ pub struct Log {
 /// and topic changes.
 #[derive(Debug)]
 pub enum Event {
+    Connect {
+        time: i64
+    },
+    Disconnect {
+        time: i64
+    },
     Msg {
         from: String,
         content: String,

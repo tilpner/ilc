@@ -1,18 +1,21 @@
 use std::io::{ self, BufRead, Write };
 use std::borrow::ToOwned;
+use std::iter::{ Iterator, AdditiveIterator };
 
 use log::Event;
 use format::{ Encode, Decode };
 
-use regex::Regex;
+use l::LogLevel::Info;
+
+//use regex::Regex;
 
 use chrono::*;
 
 pub struct Weechat3;
 
-static NORMAL_LINE: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\t[@%+~&]?([^ <-]\S+)\t(.*)");
-static ACTION_LINE: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\t \*\t(\S+) (.*)");
-static OTHER_LINES: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\s(?:--|<--|-->)\s(\S+)\s(\S+)\s(\S+)\s(\S+)\s(\S+)(.*)\n$");
+//static NORMAL_LINE: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\t[@%+~&]?([^ <-]\S+)\t(.*)");
+//static ACTION_LINE: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\t \*\t(\S+) (.*)");
+//static OTHER_LINES: Regex = regex!(r"^(\d+-\d+-\d+ \d+:\d+:\d+)\s(?:--|<--|-->)\s(\S+)\s(\S+)\s(\S+)\s(\S+)\s(\S+)(.*)\n$");
 //static OTHER_LINES: Regex = regex!(r"(.+)");
 
 static TIME_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
@@ -25,8 +28,14 @@ pub struct Iter<R> where R: BufRead {
 impl<R> Iterator for Iter<R> where R: BufRead {
     type Item = ::Result<Event>;
     fn next(&mut self) -> Option<::Result<Event>> {
-        fn time(s: &str) -> i64 {
-            UTC.datetime_from_str(s, TIME_DATE_FORMAT).unwrap().timestamp()
+        fn timestamp(date: &str, time: &str) -> i64 {
+            UTC.datetime_from_str(&format!("{} {}", date, time), TIME_DATE_FORMAT).unwrap().timestamp()
+        }
+        fn join(s: &[&str]) -> String {
+            let len = s.iter().map(|s| s.len()).sum();
+            let mut out = s.iter().fold(String::with_capacity(len),
+                                        |mut s, b| { s.push_str(b); s.push(' '); s });
+            out.pop(); out
         }
         fn mask(s: &str) -> String {
             s.trim_left_matches('(').trim_right_matches(')').to_owned()
@@ -38,11 +47,39 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 Ok(0) | Err(_) => return None,
                 Ok(_) => ()
             }
-            let line = &self.buffer;
+
+            let tokens = self.buffer.split(|c: char| c.is_whitespace()).collect::<Vec<_>>();
+            if log_enabled!(Info) {
+                info!("Parsing {:?}", tokens);
+            }
+            match tokens.as_ref() {
+                [date, time, "-->", nick, host, "has", "joined", channel, _..] => return Some(Ok(Event::Join {
+                    nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
+                    time: timestamp(date, time)
+                })),
+                [date, time, "<--", nick, host, "has", "left", channel, reason, _..] => return Some(Ok(Event::Part {
+                    nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
+                    reason: reason.to_owned(), time: timestamp(date, time)
+                })),
+                [date, time, "--", "irc:", "disconnected", "from", "server", _..] => return Some(Ok(Event::Disconnect {
+                    time: timestamp(date, time)
+                })),
+                [date, time, "*", nick, msg..] => return Some(Ok(Event::Action {
+                    from: nick.to_owned(), content: join(msg),
+                    time: timestamp(date, time)
+                })),
+                [date, time, nick, msg..] => return Some(Ok(Event::Msg {
+                    from: nick.to_owned(),
+                    content: join(msg),
+                    time: timestamp(date, time)
+                })),
+                _ => ()
+            }
+            /*
             if let Some(cap) = NORMAL_LINE.captures(line) {
                 return Some(Ok(Event::Msg {
-                    from: cap.at(1).unwrap().to_owned(),
-                    content: cap.at(2).unwrap().to_owned(),
+                    from: cap.at(2).unwrap().to_owned(),
+                    content: cap.at(3).unwrap().to_owned(),
                     time: time(cap.at(1).unwrap())
                 }))
             } else if let Some(cap) = ACTION_LINE.captures(line) {
@@ -97,7 +134,7 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                         time: time(cap.at(1).unwrap())
                     }))
                 }
-            }
+            }*/
         }
     }
 }
@@ -118,13 +155,13 @@ impl<W> Encode<W> for Weechat3 where W: Write {
         }
         match event {
             &Event::Msg { ref from, ref content, ref time } => {
-                try!(write!(&mut output, "{}\t{}\t{}\n", date(*time), from, content))
+                try!(writeln!(&mut output, "{}\t{}\t{}", date(*time), from, content))
             },
             &Event::Action { ref from, ref content, ref time } => {
-                try!(write!(&mut output, "{}\t*\t{} {}\n", date(*time), from, content))
+                try!(writeln!(&mut output, "{}\t*\t{} {}", date(*time), from, content))
             },
             &Event::Join { ref nick, ref mask, ref channel, ref time } => {
-                try!(write!(&mut output, "{}\t-->\t{} ({}) has joined {}\n",
+                try!(writeln!(&mut output, "{}\t-->\t{} ({}) has joined {}",
                 date(*time), nick, mask, channel))
             },
             &Event::Part { ref nick, ref mask, ref channel, ref time, ref reason } => {
@@ -141,6 +178,9 @@ impl<W> Encode<W> for Weechat3 where W: Write {
                     try!(write!(&mut output, " ({})", reason));
                 }
                 try!(write!(&mut output, "\n"))
+            },
+            &Event::Disconnect { ref time } => {
+                try!(writeln!(&mut output, "{}\t--\tirc: disconnected from server", date(*time)))
             },
             _ => ()
         }
