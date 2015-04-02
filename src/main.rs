@@ -6,6 +6,8 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate libc;
 extern crate regex;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 
 use std::fs::File;
@@ -59,8 +61,8 @@ fn main() {
         for file in args.arg_file {
             let f: BufReader<File> = BufReader::new(File::open(file).unwrap());
             let iter = parser.decode(f);
-            let events: Vec<_> = iter.collect();
-            for e in events {
+            for e in iter {
+                info!("Parsed: {:?}", e);
                 drop(parser.encode(io::stdout(), &e.unwrap()));
             }
         }

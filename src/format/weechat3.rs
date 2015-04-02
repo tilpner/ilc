@@ -58,14 +58,23 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                     nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
                     time: timestamp(date, time)
                 })),
-                [date, time, "<--", nick, host, "has", "left", channel, reason, _..] => return Some(Ok(Event::Part {
+                [date, time, "<--", nick, host, "has", "left", channel, reason..] => return Some(Ok(Event::Part {
                     nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
-                    reason: reason.to_owned(), time: timestamp(date, time)
+                    reason: mask(&join(reason)), time: timestamp(date, time)
+                })),
+                [date, time, "--", notice, content..]
+                    if notice.starts_with("Notice(")
+                    => return Some(Ok(Event::Notice {
+                    nick: notice["Notice(".len()..notice.len() - 2].to_owned(),
+                    content: join(content),
+                    time: timestamp(date, time)
                 })),
                 [date, time, "--", "irc:", "disconnected", "from", "server", _..] => return Some(Ok(Event::Disconnect {
                     time: timestamp(date, time)
                 })),
-                [date, time, "*", nick, msg..] => return Some(Ok(Event::Action {
+                [date, time, sp, "*", nick, msg..]
+                    if sp.is_empty()
+                    => return Some(Ok(Event::Action {
                     from: nick.to_owned(), content: join(msg),
                     time: timestamp(date, time)
                 })),
@@ -159,7 +168,7 @@ impl<W> Encode<W> for Weechat3 where W: Write {
                 try!(writeln!(&mut output, "{}\t{}\t{}", date(*time), from, content))
             },
             &Event::Action { ref from, ref content, ref time } => {
-                try!(writeln!(&mut output, "{}\t*\t{} {}", date(*time), from, content))
+                try!(writeln!(&mut output, "{}\t *\t{} {}", date(*time), from, content))
             },
             &Event::Join { ref nick, ref mask, ref channel, ref time } => {
                 try!(writeln!(&mut output, "{}\t-->\t{} ({}) has joined {}",
@@ -182,6 +191,9 @@ impl<W> Encode<W> for Weechat3 where W: Write {
             },
             &Event::Disconnect { ref time } => {
                 try!(writeln!(&mut output, "{}\t--\tirc: disconnected from server", date(*time)))
+            },
+            &Event::Notice { ref nick, ref content, ref time } => {
+                try!(writeln!(&mut output, "{}\t--\tNotice({}): {}", date(*time), nick, content))
             },
             _ => ()
         }

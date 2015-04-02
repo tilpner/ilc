@@ -1,4 +1,4 @@
-#![feature(plugin, slice_patterns, convert, core)]
+#![feature(plugin, str_char, slice_patterns, convert, core)]
 #![plugin(regex_macros)]
 extern crate regex;
 extern crate chrono;
