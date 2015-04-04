@@ -24,10 +24,10 @@ impl<R> Iterator for Iter<R> where R: BufRead {
         fn timestamp(date: &str, time: &str) -> i64 {
             UTC.datetime_from_str(&format!("{} {}", date, time), TIME_DATE_FORMAT).unwrap().timestamp()
         }
-        fn join(s: &[&str], splits: &[&str]) -> String {
+        fn join(s: &[&str], splits: &[char]) -> String {
             let len = s.iter().map(|s| s.len()).sum();
             let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
-               |mut s, (b, split)| { s.push_str(b); s.push(split); s });
+               |mut s, (b, &split)| { s.push_str(b); s.push(split); s });
             out.pop(); out
         }
         fn mask(s: &str) -> String {
@@ -41,8 +41,10 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 Ok(_) => ()
             }
 
-            let mut split_tokens = Vec::new();
-            let tokens = self.buffer.split(|c: char| { split_tokens.push(c); c.is_whitespace() }).collect::<Vec<_>>();
+            let mut split_tokens: Vec<char> = Vec::new();
+            let tokens = self.buffer.split( |c: char| {
+                if c.is_whitespace() { split_tokens.push(c); true } else { false }
+            }).collect::<Vec<_>>();
             if log_enabled!(Info) {
                 info!("Original:  `{}`", self.buffer);
                 info!("Parsing:   {:?}", tokens);
@@ -54,13 +56,13 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 })),
                 [date, time, "<--", nick, host, "has", "left", channel, reason..] => return Some(Ok(Event::Part {
                     nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
-                    reason: mask(&join(reason)), time: timestamp(date, time)
+                    reason: mask(&join(reason, &split_tokens[8..])), time: timestamp(date, time)
                 })),
                 [date, time, "--", notice, content..]
                     if notice.starts_with("Notice(")
                     => return Some(Ok(Event::Notice {
                     nick: notice["Notice(".len()..notice.len() - 2].to_owned(),
-                    content: join(content),
+                    content: join(content, &split_tokens[4..]),
                     time: timestamp(date, time)
                 })),
                 [date, time, "--", "irc:", "disconnected", "from", "server", _..] => return Some(Ok(Event::Disconnect {
@@ -69,12 +71,12 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 [date, time, sp, "*", nick, msg..]
                     if sp.is_empty()
                     => return Some(Ok(Event::Action {
-                    from: nick.to_owned(), content: join(msg),
+                    from: nick.to_owned(), content: join(msg, &split_tokens[5..]),
                     time: timestamp(date, time)
                 })),
                 [date, time, nick, msg..] => return Some(Ok(Event::Msg {
                     from: nick.to_owned(),
-                    content: join(msg),
+                    content: join(msg, &split_tokens[3..]),
                     time: timestamp(date, time)
                 })),
                 _ => ()
