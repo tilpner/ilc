@@ -24,10 +24,10 @@ impl<R> Iterator for Iter<R> where R: BufRead {
         fn timestamp(date: &str, time: &str) -> i64 {
             UTC.datetime_from_str(&format!("{} {}", date, time), TIME_DATE_FORMAT).unwrap().timestamp()
         }
-        fn join(s: &[&str]) -> String {
+        fn join(s: &[&str], splits: &[&str]) -> String {
             let len = s.iter().map(|s| s.len()).sum();
-            let mut out = s.iter().fold(String::with_capacity(len),
-               |mut s, b| { s.push_str(b); s.push(' '); s });
+            let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
+               |mut s, (b, split)| { s.push_str(b); s.push(split); s });
             out.pop(); out
         }
         fn mask(s: &str) -> String {
@@ -41,7 +41,8 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 Ok(_) => ()
             }
 
-            let tokens = self.buffer.split(|c: char| c.is_whitespace()).collect::<Vec<_>>();
+            let mut split_tokens = Vec::new();
+            let tokens = self.buffer.split(|c: char| { split_tokens.push(c); c.is_whitespace() }).collect::<Vec<_>>();
             if log_enabled!(Info) {
                 info!("Original:  `{}`", self.buffer);
                 info!("Parsing:   {:?}", tokens);
