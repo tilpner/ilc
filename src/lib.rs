@@ -1,4 +1,4 @@
-#![feature(plugin, str_char, slice_patterns, convert, core)]
+#![feature(plugin, slice_patterns, core)]
 #![plugin(regex_macros)]
 extern crate regex;
 extern crate chrono;
@@ -8,24 +8,24 @@ extern crate log as l;
 pub mod log;
 pub mod format;
 
-use std::error::FromError;
+use std::convert::From;
 use std::{ io, result };
 
 use chrono::format::ParseError;
 
 pub type Result<T> = result::Result<T, IlcError>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum IlcError {
     Parse(String),
     Chrono(ParseError),
     Io(io::Error)
 }
 
-impl FromError<ParseError> for IlcError {
-    fn from_error(err: ParseError) -> IlcError { IlcError::Chrono(err) }
+impl From<ParseError> for IlcError {
+    fn from(err: ParseError) -> IlcError { IlcError::Chrono(err) }
 }
 
-impl FromError<io::Error> for IlcError {
-    fn from_error(err: io::Error) -> IlcError { IlcError::Io(err) }
+impl From<io::Error> for IlcError {
+    fn from(err: io::Error) -> IlcError { IlcError::Io(err) }
 }
