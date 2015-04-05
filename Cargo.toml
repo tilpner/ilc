@@ -4,6 +4,10 @@ name = "ilc"
 version = "0.0.1"
 authors = ["Till Hoeppner <till@hoeppner.ws>"]
 
+[[bin]]
+name = "ilc"
+doc = false
+
 [dependencies]
 regex = "*"
 regex_macros = "*"
