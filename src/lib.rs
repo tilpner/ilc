@@ -1,9 +1,11 @@
-#![feature(plugin, slice_patterns, core)]
+#![feature(plugin, slice_patterns, core, custom_derive)]
 #![plugin(regex_macros)]
 extern crate regex;
 extern crate chrono;
 #[macro_use]
 extern crate log as l;
+extern crate rustc_serialize;
+extern crate bincode;
 
 pub mod log;
 pub mod format;
@@ -19,6 +21,8 @@ pub type Result<T> = result::Result<T, IlcError>;
 pub enum IlcError {
     Parse(String),
     Chrono(ParseError),
+    BincodeDecode,
+    BincodeEncode,
     Io(io::Error)
 }
 

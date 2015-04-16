@@ -9,7 +9,7 @@ pub struct Log {
 
 /// All representable events, such as messages, quits, joins
 /// and topic changes.
-#[derive(Debug)]
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 pub enum Event {
     Connect {
         time: i64

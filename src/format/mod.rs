@@ -7,9 +7,10 @@ use std::io::{ self, BufRead, Write };
 use log::Event;
 
 pub mod weechat3;
+pub mod binary;
 
 pub trait Encode<W> where W: Write {
-    fn encode(&self, output: W, event: &Event) -> io::Result<()>;
+    fn encode(&self, output: W, event: &Event) -> ::Result<()>;
 }
 
 pub trait Decode<R, O> where R: BufRead, O: Iterator<Item = ::Result<Event>> {

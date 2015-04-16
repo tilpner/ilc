@@ -95,7 +95,7 @@ impl<R> Decode<R, Iter<R>> for Weechat3 where R: BufRead {
 }
 
 impl<W> Encode<W> for Weechat3 where W: Write {
-    fn encode(&self, mut output: W, event: &Event) -> io::Result<()> {
+    fn encode(&self, mut output: W, event: &Event) -> ::Result<()> {
         fn date(t: i64) -> String {
             format!("{}", UTC.timestamp(t, 0).format(TIME_DATE_FORMAT))
         }
