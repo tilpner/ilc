@@ -1,6 +1,6 @@
 use std::io::{ self, BufRead, Write };
 use std::borrow::ToOwned;
-use std::iter::{ Iterator, AdditiveIterator };
+use std::iter::{ Iterator };
 
 use log::Event;
 use format::{ Encode, Decode };
@@ -31,7 +31,7 @@ impl<R> Iterator for Iter<R> where R: BufRead {
             out.pop(); out
         }
         fn mask(s: &str) -> String {
-            s.trim_left_matches('(').trim_right_matches(')').to_owned()
+            if s.len() >= 2 { s[1..(s.len() - 1)].to_owned() } else { String::new() }
         }
 
         loop {
