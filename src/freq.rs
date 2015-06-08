@@ -15,6 +15,14 @@ fn words(s: &str) -> u32 {
     s.split_whitespace().filter(|s| !s.is_empty()).count() as u32
 }
 
+fn strip_nick(s: &str) -> &str {
+    if s.is_empty() { return s }
+    match s.as_bytes()[0] {
+        b'~' | b'&' | b'@' | b'%' | b'+' => &s[1..],
+        _ => s
+    }
+}
+
 fn main() {
     let stdin = io::stdin();
 
@@ -29,12 +37,13 @@ fn main() {
 
         match m {
             Msg { ref from, ref content, .. } => {
-                if stats.contains_key(from) {
-                    let p: &mut Person = stats.get_mut(from).unwrap();
+                let nick = strip_nick(from);
+                if stats.contains_key(nick) {
+                    let p: &mut Person = stats.get_mut(nick).unwrap();
                     p.lines += 1;
                     p.words += words(content);
                 } else {
-                    stats.insert(from.clone(), Person {
+                    stats.insert(nick.to_owned(), Person {
                         lines: 1,
                         words: words(content)
                     });
