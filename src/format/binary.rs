@@ -1,6 +1,5 @@
-use std::io::{ self, BufRead, Write };
-use std::borrow::ToOwned;
-use std::iter::{ Iterator };
+use std::io::{ BufRead, Write };
+use std::iter::Iterator;
 
 use log::Event;
 use format::{ Encode, Decode };
@@ -10,19 +9,21 @@ use bincode::{ self, SizeLimit };
 pub struct Binary;
 
 pub struct Iter<R> where R: BufRead {
-    input: R,
+    input: R
 }
 
 impl<R> Iterator for Iter<R> where R: BufRead {
     type Item = ::Result<Event>;
     fn next(&mut self) -> Option<::Result<Event>> {
-        Some(bincode::decode_from(&mut self.input, SizeLimit::Infinite).map_err(|_| ::IlcError::BincodeDecode))
+        Some(bincode::decode_from::<R, Event>(&mut self.input, SizeLimit::Infinite)
+             .map_err(|_| ::IlcError::BincodeDecode))
     }
 }
 
 impl<W> Encode<W> for Binary where W: Write {
     fn encode(&self, mut output: W, event: &Event) -> ::Result<()> {
-        bincode::encode_into(event, &mut output, SizeLimit::Infinite).map_err(|_| ::IlcError::BincodeEncode)
+        bincode::encode_into(event, &mut output, SizeLimit::Infinite)
+            .map_err(|_| ::IlcError::BincodeEncode)
     }
 }
 

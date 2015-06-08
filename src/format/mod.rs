@@ -2,7 +2,7 @@
 //! As the source format may not provide the same information as the
 //! target format, all formats must allow for omittable information.
 
-use std::io::{ self, BufRead, Write };
+use std::io::{ BufRead, Write };
 
 use log::Event;
 

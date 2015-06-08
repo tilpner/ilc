@@ -1,4 +1,4 @@
-use std::io::{ self, BufRead, Write };
+use std::io::{ BufRead, Write };
 use std::borrow::ToOwned;
 use std::iter::{ Iterator };
 
@@ -58,6 +58,10 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                     nick: nick.to_owned(), channel: channel.to_owned(), mask: mask(host),
                     reason: mask(&join(reason, &split_tokens[8..])), time: timestamp(date, time)
                 })),
+                [date, time, "<--", nick, host, "has", "quit", reason..] => return Some(Ok(Event::Quit {
+                    nick: nick.to_owned(), mask: mask(host),
+                    reason: mask(&join(reason, &split_tokens[7..])), time: timestamp(date, time)
+                })),
                 [date, time, "--", notice, content..]
                     if notice.starts_with("Notice(")
                     => return Some(Ok(Event::Notice {
@@ -67,6 +71,11 @@ impl<R> Iterator for Iter<R> where R: BufRead {
                 })),
                 [date, time, "--", "irc:", "disconnected", "from", "server", _..] => return Some(Ok(Event::Disconnect {
                     time: timestamp(date, time)
+                })),
+                [date, time, "--", nick, verb, "now", "known", "as", new_nick]
+                    if verb == "is" || verb == "are"
+                    => return Some(Ok(Event::Nick {
+                    old: nick.to_owned(), new: new_nick.to_owned(), time: timestamp(date, time)
                 })),
                 [date, time, sp, "*", nick, msg..]
                     if sp.is_empty()

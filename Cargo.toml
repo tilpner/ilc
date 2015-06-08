@@ -8,6 +8,11 @@ authors = ["Till Hoeppner <till@hoeppner.ws>"]
 name = "ilc"
 doc = false
 
+[[bin]]
+name = "freq"
+path = "src/freq.rs"
+doc = false
+
 [dependencies]
 regex = "*"
 regex_macros = "*"
@@ -16,6 +21,14 @@ docopt = "*"
 rustc-serialize = "*"
 log = "*"
 env_logger = "*"
+bincode = "*"
+
+[dependencies.clippy]
+version = "*"
+optional = true
+
+[features]
+lints = ["clippy"]
 
 [profile.release]
 opt-level = 3
