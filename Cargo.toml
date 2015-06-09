@@ -24,13 +24,6 @@ log = "*"
 env_logger = "*"
 bincode = "*"
 
-[dependencies.clippy]
-version = "*"
-optional = true
-
-[features]
-lints = ["clippy"]
-
 [profile.release]
 opt-level = 3
 debug = false

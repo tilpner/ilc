@@ -14,7 +14,6 @@
 
 #![feature(plugin, slice_patterns, core, custom_derive)]
 #![plugin(regex_macros)]
-#![cfg_attr(feature = "lints", plugin(clippy))]
 extern crate regex;
 extern crate chrono;
 #[macro_use]
