@@ -17,6 +17,7 @@
 
 use std::borrow::Cow;
 
+use chrono::naive::time::NaiveTime;
 use chrono::offset::fixed::FixedOffset;
 use chrono::offset::TimeZone;
 
@@ -47,7 +48,8 @@ impl Time {
     pub fn with_format(&self, tz: &FixedOffset, f: &str) -> String {
         match self {
             &Time::Unknown => panic!("Time data for this event is not present"),
-            &Time::Hms(_h, _m, _s) => unimplemented!(),
+            &Time::Hms(h, m, s) => format!("{}",
+                NaiveTime::from_hms(h as u32, m as u32, s as u32).format(f)),
             &Time::Timestamp(t) => format!("{}", tz.timestamp(t, 0).format(f))
         }
     }

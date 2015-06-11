@@ -27,6 +27,7 @@ extern crate env_logger;
 
 use std::fs::File;
 use std::io::{ self, BufReader };
+use std::str::FromStr;
 
 use docopt::Docopt;
 
@@ -50,20 +51,35 @@ A converter and statistics utility for IRC log files.
 
 Usage:
   ilc parse <file>...
-  ilc
+  ilc convert <informat> <outformat> [--date DATE] [--tz SECS] [--channel CH]
+  ilc (-h | --help | -v | --version)
 
 Options:
   -h --help         Show this screen.
   -v --version      Show the version (duh).
+  --date DATE       Override the date for this log. ISO 8601, YYYY-MM-DD.
+  --tz SECONDS      UTC offset in the direction of the western hemisphere. [default: 0]
+  --channel CH      Set a channel for the given log.
 "#;
 
 #[derive(RustcDecodable, Debug)]
 struct Args {
     cmd_parse: bool,
+    cmd_convert: bool,
     arg_file: Vec<String>,
     flag_help: bool,
-    flag_version: bool
+    flag_version: bool,
+    flag_date: Option<String>,
+    flag_tz: i32,
+    flag_channel: Option<String>
 }
+
+/*fn encode<'a, W, F>(format: &str) -> F where F: Encode<'a, W> {
+    match format {
+        "weechat3" => format::weechat3::Weechat3,
+        "energymech" => format::energymech::Energymech
+    }
+}*/
 
 fn main() {
     env_logger::init().unwrap();
@@ -75,13 +91,15 @@ fn main() {
         unsafe { libc::funcs::c95::stdlib::exit(1) }
     }
 
+    let context = Context {
+        timezone: FixedOffset::west(args.flag_tz),
+        override_date: args.flag_date.and_then(|d| NaiveDate::from_str(&d).ok()),
+        channel: args.flag_channel.clone()
+    };
+
     if args.cmd_parse {
-        let context = Context {
-            timezone: FixedOffset::west(0),
-            override_date: NaiveDate::from_ymd(2015, 6, 10)
-        };
         let mut parser = format::energymech::Energymech;
-        let formatter = format::energymech::Energymech;
+        let formatter = format::binary::Binary;
         for file in args.arg_file {
             let f: BufReader<File> = BufReader::new(File::open(file).unwrap());
             let iter = parser.decode(&context, f);
@@ -89,6 +107,17 @@ fn main() {
                 info!("Parsed: {:?}", e);
                 drop(formatter.encode(&context, io::stdout(), &e.unwrap()));
             }
+        }
+    }
+
+    if args.cmd_convert {
+        let stdin = io::stdin();
+
+        let mut parser = format::energymech::Energymech;
+        let formatter = format::binary::Binary;
+
+        for e in parser.decode(&context, stdin.lock()) {
+            drop(formatter.encode(&context, io::stdout(), &e.unwrap()))
         }
     }
 }

@@ -84,7 +84,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         reason: Some(strip_one(&rejoin(reason, &split_tokens[7..])).into()),
                     },
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [date, time, "--", notice, content..]
                     if notice.starts_with("Notice(")
@@ -94,13 +94,13 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         content: rejoin(content, &split_tokens[4..]),
                     },
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [date, time, "--", "irc:", "disconnected", "from", "server", _..]
                 => return Some(Ok(Event {
                     ty: Type::Disconnect,
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [date, time, "--", nick, verb, "now", "known", "as", new_nick]
                     if verb == "is" || verb == "are"
@@ -110,7 +110,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         new_nick: new_nick.to_owned().into()
                     },
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [date, time, sp, "*", nick, msg..]
                     if sp.clone().is_empty()
@@ -120,7 +120,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         content: rejoin(msg, &split_tokens[5..]),
                     },
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [date, time, nick, msg..]
                 => return Some(Ok(Event {
@@ -129,7 +129,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         content: rejoin(msg, &split_tokens[3..]),
                     },
                     time: parse_time(&self.context, date, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 _ => ()
             }

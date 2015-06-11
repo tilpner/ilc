@@ -48,7 +48,8 @@ fn main() {
     let mut stats: HashMap<String, Person> = HashMap::new();
     let context = Context {
         timezone: FixedOffset::west(0),
-        override_date: NaiveDate::from_ymd(2015, 6, 10)
+        override_date: Some(NaiveDate::from_ymd(2015, 6, 10)),
+        channel: Some("#code".to_owned())
     };
 
     let mut parser = format::weechat3::Weechat3;

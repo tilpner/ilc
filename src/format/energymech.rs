@@ -38,13 +38,18 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
         fn parse_time(context: &Context, time: &str) -> Time {
-            Time::Timestamp(context.timezone.from_local_date(&context.override_date)
-                .and_time(NaiveTime::from_hms(time[1..3].parse::<u32>().unwrap(),
-                                              time[4..6].parse::<u32>().unwrap(),
-                                              time[7..9].parse::<u32>().unwrap()))
-                .single()
-                .expect("Transformed log times can't be represented, due to timezone transitions")
-                .timestamp())
+            let h = time[1..3].parse::<u32>().unwrap();
+            let m = time[4..6].parse::<u32>().unwrap();
+            let s = time[7..9].parse::<u32>().unwrap();
+            if let Some(date) = context.override_date {
+                Time::Timestamp(context.timezone.from_local_date(&date)
+                    .and_time(NaiveTime::from_hms(h, m, s))
+                    .single()
+                    .expect("Transformed log times can't be represented, due to timezone transitions")
+                    .timestamp())
+            } else {
+                Time::Hms(h as u8, m as u8, s as u8)
+            }
         }
 
         loop {
@@ -71,7 +76,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         content: rejoin(content, &split_tokens[3..])
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 [time, "***", old, "is", "now", "known", "as", new] => return Some(Ok(Event {
                     ty: Type::Nick {
@@ -79,7 +84,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         new_nick: new.to_owned().into()
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, "***", nick, "sets", "mode:", mode, masks..] => return Some(Ok(Event {
                     ty: Type::Mode {
@@ -88,7 +94,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         masks: rejoin(&masks, &split_tokens[6..]).to_owned().into()
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, "***", "Joins:", nick, host] => return Some(Ok(Event {
                     ty: Type::Join {
@@ -96,7 +103,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         mask: Some(strip_one(host).into())
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, "***", "Parts:", nick, host, reason..] => return Some(Ok(Event {
                     ty: Type::Part {
@@ -105,7 +113,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into())
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, "***", "Quits:", nick, host, reason..] => return Some(Ok(Event {
                     ty: Type::Quit {
@@ -114,7 +123,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into())
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, "***", nick, "changes", "topic", "to", topic..] => return Some(Ok(Event {
                     ty: Type::TopicChange {
@@ -122,7 +132,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         new_topic: strip_one(&rejoin(topic, &split_tokens[6..])).into()
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
+
                 })),
                 [time, nick, content..]
                     if nick.starts_with('<') && nick.ends_with('>')
@@ -132,7 +143,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         content: rejoin(content, &split_tokens[2..])
                     },
                     time: parse_time(&self.context, time),
-                    channel: None
+                    channel: self.context.channel.clone().map(Into::into)
                 })),
                 _ => ()
             }
