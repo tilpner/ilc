@@ -17,16 +17,30 @@
 //! target format, all formats must allow for omittable information.
 
 use std::io::{ BufRead, Write };
+use std::borrow::Cow;
 
-use log::Event;
+use event::Event;
+use context::Context;
 
 pub mod weechat3;
-pub mod binary;
+//pub mod energymech;
+//pub mod binary;
 
-pub trait Encode<W> where W: Write {
-    fn encode(&self, output: W, event: &Event) -> ::Result<()>;
+pub trait Encode<'a, W> where W: Write {
+    fn encode(&'a self, context: &'a Context, output: W, event: &'a Event) -> ::Result<()>;
 }
 
-pub trait Decode<R, O> where R: BufRead, O: Iterator<Item = ::Result<Event>> {
-    fn decode(&mut self, input: R) -> O;
+pub trait Decode<'a, R, O> where R: BufRead, O: Iterator<Item = ::Result<Event<'a>>> {
+    fn decode(&'a mut self, context: &'a Context, input: R) -> O;
+}
+
+fn rejoin(s: &[&str], splits: &[char]) -> Cow<'static, str> {
+    let len = s.iter().map(|s| s.len()).sum();
+    let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
+        |mut s, (b, &split)| { s.push_str(b); s.push(split); s });
+    out.pop(); Cow::Owned(out)
+}
+
+fn strip_one(s: &str) -> String {
+    if s.len() >= 2 { s[1..(s.len() - 1)].to_owned() } else { String::new() }
 }

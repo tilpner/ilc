@@ -14,35 +14,38 @@
 
 use std::io::{ BufRead, Write };
 use std::iter::Iterator;
+use std::marker::PhantomData;
 
-use log::Event;
+use event::Event;
+use context::Context;
 use format::{ Encode, Decode };
 
 use bincode::{ self, SizeLimit };
 
 pub struct Binary;
 
-pub struct Iter<R> where R: BufRead {
+pub struct Iter<'a, R: 'a> where R: BufRead {
+    _phantom: PhantomData<&'a ()>,
     input: R
 }
 
-impl<R> Iterator for Iter<R> where R: BufRead {
-    type Item = ::Result<Event>;
-    fn next(&mut self) -> Option<::Result<Event>> {
+impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
+    type Item = ::Result<Event<'a>>;
+    fn next(&mut self) -> Option<::Result<Event<'a>>> {
         Some(bincode::decode_from::<R, Event>(&mut self.input, SizeLimit::Infinite)
              .map_err(|_| ::IlcError::BincodeDecode))
     }
 }
 
-impl<W> Encode<W> for Binary where W: Write {
-    fn encode(&self, mut output: W, event: &Event) -> ::Result<()> {
+impl<'a, W> Encode<'a, W> for Binary where W: Write {
+    fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
         bincode::encode_into(event, &mut output, SizeLimit::Infinite)
             .map_err(|_| ::IlcError::BincodeEncode)
     }
 }
 
-impl<R> Decode<R, Iter<R>> for Binary where R: BufRead {
-    fn decode(&mut self, input: R) -> Iter<R> {
-        Iter { input: input }
+impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Binary where R: BufRead {
+    fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
+        Iter { _phantom: PhantomData, input: input }
     }
 }
