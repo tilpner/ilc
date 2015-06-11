@@ -113,21 +113,21 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                     if sp.clone().is_empty()
                 => return Some(Ok(Event {
                     ty: Type::Action {
-                        from: nick.clone().into_cow(),
+                        from: nick.to_owned().into(),
                         content: rejoin(msg, &split_tokens[5..]),
                     },
                     time: parse_time(&self.context, &date.clone().to_owned(), &time.clone().to_owned()),
                     channel: None
                 })),
-                /*[date, time, nick, msg..]
+                [date, time, nick, msg..]
                 => return Some(Ok(Event {
                     ty: Type::Msg {
-                        from: nick.into(),
+                        from: nick.to_owned().into(),
                         content: rejoin(msg, &split_tokens[3..]),
                     },
                     time: parse_time(&self.context, &date, &time),
                     channel: None
-                })),*/
+                })),
                 _ => ()
             }
         }
