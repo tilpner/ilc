@@ -43,14 +43,14 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
         }
 
         loop {
-            let mut buffer = String::new();
-            match self.input.read_line(&mut buffer) {
+            self.buffer.clear();
+            match self.input.read_line(&mut self.buffer) {
                 Ok(0) | Err(_) => return None,
                 Ok(_) => ()
             }
 
             let mut split_tokens: Vec<char> = Vec::new();
-            let tokens = buffer.split(|c: char| {
+            let tokens = self.buffer.split(|c: char| {
                 if c.is_whitespace() { split_tokens.push(c); true } else { false }
             }).collect::<Vec<_>>();
 

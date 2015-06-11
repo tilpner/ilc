@@ -13,12 +13,12 @@
 // limitations under the License.
 
 use std::io::{ BufRead, Write };
-use std::borrow::ToOwned;
+use std::borrow::{ ToOwned, Cow };
 use std::iter::{ Iterator };
 
-use event::{ Event, rejoin };
+use event::{ Event, Type, Time };
 use context::Context;
-use format::{ Encode, Decode };
+use format::{ Encode, Decode, rejoin, strip_one };
 
 use l::LogLevel::Info;
 
@@ -37,23 +37,14 @@ pub struct Iter<'a, R: 'a> where R: BufRead {
 impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
-        fn timestamp(context: &Context, time: &str) -> i64 {
-            context.timezone.from_local_date(&context.override_date)
-                .and_time(NaiveTime::from_hms(time[0..2].parse::<u32>().unwrap(),
-                                              time[3..5].parse::<u32>().unwrap(),
-                                              time[6..8].parse::<u32>().unwrap()))
+        fn parse_time(context: &Context, time: &str) -> Time {
+            Time::Timestamp(context.timezone.from_local_date(&context.override_date)
+                .and_time(NaiveTime::from_hms(time[1..3].parse::<u32>().unwrap(),
+                                              time[4..6].parse::<u32>().unwrap(),
+                                              time[7..9].parse::<u32>().unwrap()))
                 .single()
                 .expect("Transformed log times can't be represented, due to timezone transitions")
-                .timestamp()
-        }
-        fn join(s: &[&str], splits: &[char]) -> String {
-            let len = s.iter().map(|s| s.len()).sum();
-            let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
-               |mut s, (b, &split)| { s.push_str(b); s.push(split); s });
-            out.pop(); out
-        }
-        fn mask(s: &str) -> String {
-            if s.len() >= 2 { s[1..(s.len() - 1)].to_owned() } else { String::new() }
+                .timestamp())
         }
 
         loop {
@@ -72,27 +63,48 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                 info!("Parsing:   {:?}", tokens);
             }
             match tokens[..tokens.len() - 1].as_ref() {
-                [time, "*", nick, content..] => return Some(Ok(Event::Action {
-                    from: nick.to_owned(), content: join(content, &split_tokens[3..]),
-                    time: timestamp(&self.context, &mask(time))
+                [time, "*", nick, content..] => return Some(Ok(Event {
+                    ty: Type::Action {
+                        from: nick.to_owned().into(),
+                        content: rejoin(content, &split_tokens[3..])
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
                 })),
-                [time, "***", old, "is", "now", "known", "as", new] => return Some(Ok(Event::Nick {
-                    old: old.to_owned(), new: new.to_owned(),
-                    time: timestamp(&self.context, &mask(time))
+                [time, "***", old, "is", "now", "known", "as", new] => return Some(Ok(Event {
+                    ty: Type::Nick {
+                        old_nick: old.to_owned().into(),
+                        new_nick: new.to_owned().into()
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
                 })),
-                [time, "***", "Joins:", nick, host] => return Some(Ok(Event::Join {
-                    nick: nick.to_owned(), mask: mask(host)
+                [time, "***", "Joins:", nick, host] => return Some(Ok(Event {
+                    ty: Type::Join {
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into())
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
                 })),
-                [time, "***", "Quits:", nick, host, reason..] => return Some(Ok(Event::Quit {
-                    nick: nick.to_owned(), mask: mask(host),
-                    reason: mask(&join(reason, &split_tokens[5..])),
-                    time: timestamp(&self.context, &mask(time))
+                [time, "***", "Quits:", nick, host, reason..] => return Some(Ok(Event {
+                    ty: Type::Quit {
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into()),
+                        reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into())
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
                 })),
                 [time, nick, content..]
                     if nick.starts_with('<') && nick.ends_with('>')
-                    => return Some(Ok(Event::Msg {
-                    from: mask(nick), content: join(content, &split_tokens[2..]),
-                    time: timestamp(&self.context, &mask(time))
+                    => return Some(Ok(Event {
+                    ty: Type::Msg {
+                        from: strip_one(nick).into(),
+                        content: rejoin(content, &split_tokens[2..])
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
                 })),
                 _ => ()
             }
@@ -116,17 +128,23 @@ impl<'a, W> Encode<'a, W> for Energymech where W: Write {
             format!("[{}]", UTC.timestamp(t, 0).format(TIME_FORMAT))
         }
         match event {
-            &Event::Msg { ref from, ref content, ref time } => {
-                try!(writeln!(&mut output, "{} <{}> {}", date(*time), from, content))
+            &Event { ty: Type::Msg { ref from, ref content }, ref time, .. } => {
+                try!(writeln!(&mut output, "{} <{}> {}",
+                    time.with_format(&context.timezone, TIME_FORMAT), from, content))
             },
-            &Event::Action { ref from, ref content, ref time } => {
-                try!(writeln!(&mut output, "{} * {} {}", date(*time), from, content))
+            &Event { ty: Type::Action { ref from, ref content }, ref time, .. } => {
+                try!(writeln!(&mut output, "{} * {} {}",
+                    time.with_format(&context.timezone, TIME_FORMAT), from, content))
             },
-            &Event::Nick { ref old, ref new, ref time } => {
-                try!(writeln!(&mut output, "{} *** {} is now known as {}", date(*time), old, new))
+            &Event { ty: Type::Nick { ref old_nick, ref new_nick }, ref time, .. } => {
+                try!(writeln!(&mut output, "{} *** {} is now known as {}",
+                    time.with_format(&context.timezone, TIME_FORMAT), old_nick, new_nick))
             },
-            &Event::Quit { ref nick, ref mask, ref reason, ref time } => {
-                try!(writeln!(&mut output, "{} *** Quits: {} ({}) ({})", date(*time), nick, mask, reason))
+            &Event { ty: Type::Quit { ref nick, ref mask, ref reason }, ref time, .. } => {
+                try!(writeln!(&mut output, "{} *** Quits: {} ({}) ({})",
+                    time.with_format(&context.timezone, TIME_FORMAT), nick,
+                    mask.as_ref().expect("Mask not present, but required."),
+                    reason.as_ref().expect("Reason not present, but required.")))
             },
             _ => ()
         }
