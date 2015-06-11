@@ -38,14 +38,14 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
 }
 
 impl<'a, W> Encode<'a, W> for Binary where W: Write {
-    fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
+    fn encode(&'a self, _context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
         bincode::encode_into(event, &mut output, SizeLimit::Infinite)
             .map_err(|_| ::IlcError::BincodeEncode)
     }
 }
 
 impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Binary where R: BufRead {
-    fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
+    fn decode(&'a mut self, _context: &'a Context, input: R) -> Iter<R> {
         Iter { _phantom: PhantomData, input: input }
     }
 }

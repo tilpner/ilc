@@ -13,17 +13,14 @@
 // limitations under the License.
 
 use std::io::{ BufRead, Write };
-use std::borrow::{ ToOwned, Cow, IntoCow };
+use std::borrow::{ ToOwned };
 use std::iter::{ Iterator };
-use std::marker::PhantomData;
 
 use event::{ Event, Type, Time };
 use context::Context;
 use format::{ Encode, Decode, rejoin, strip_one };
 
 use l::LogLevel::Info;
-
-use chrono::*;
 
 pub struct Weechat3;
 
@@ -36,8 +33,8 @@ pub struct Iter<'a, R: 'a> where R: BufRead {
 }
 
 impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
-    type Item = ::Result<Event<'static>>;
-    fn next(&mut self) -> Option<::Result<Event<'static>>> {
+    type Item = ::Result<Event<'a>>;
+    fn next(&mut self) -> Option<::Result<Event<'a>>> {
         fn parse_time(c: &Context, date: &str, time: &str) -> Time {
             Time::from_format(&c.timezone, &format!("{} {}", date, time), TIME_DATE_FORMAT)
         }
@@ -140,7 +137,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, R: 'a> Decode<'static, R, Iter<'a, R>> for Weechat3 where R: BufRead {
+impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Weechat3 where R: BufRead {
     fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
         Iter {
             context: context,
@@ -152,9 +149,6 @@ impl<'a, R: 'a> Decode<'static, R, Iter<'a, R>> for Weechat3 where R: BufRead {
 
 impl<'a, W> Encode<'a, W> for Weechat3 where W: Write {
     fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
-        fn date(t: i64) -> String {
-            format!("{}", UTC.timestamp(t, 0).format(TIME_DATE_FORMAT))
-        }
         match event {
             &Event { ty: Type::Msg { ref from, ref content, .. }, ref time, .. } => {
                 try!(writeln!(&mut output, "{}\t{}\t{}",

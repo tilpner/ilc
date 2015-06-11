@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::io::{ BufRead, Write };
-use std::borrow::{ ToOwned, Cow };
+use std::borrow::{ ToOwned };
 use std::iter::{ Iterator };
 
 use event::{ Event, Type, Time };
@@ -62,7 +62,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                 info!("Original:  `{}`", self.buffer);
                 info!("Parsing:   {:?}", tokens);
             }
-            match tokens[..tokens.len() - 1].as_ref() {
+            match &tokens[..tokens.len() - 1] {
                 [time, "*", nick, content..] => return Some(Ok(Event {
                     ty: Type::Action {
                         from: nick.to_owned().into(),
@@ -124,24 +124,21 @@ impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Energymech where R: BufRead {
 
 impl<'a, W> Encode<'a, W> for Energymech where W: Write {
     fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
-        fn date(t: i64) -> String {
-            format!("[{}]", UTC.timestamp(t, 0).format(TIME_FORMAT))
-        }
         match event {
             &Event { ty: Type::Msg { ref from, ref content }, ref time, .. } => {
-                try!(writeln!(&mut output, "{} <{}> {}",
+                try!(writeln!(&mut output, "[{}] <{}> {}",
                     time.with_format(&context.timezone, TIME_FORMAT), from, content))
             },
             &Event { ty: Type::Action { ref from, ref content }, ref time, .. } => {
-                try!(writeln!(&mut output, "{} * {} {}",
+                try!(writeln!(&mut output, "[{}] * {} {}",
                     time.with_format(&context.timezone, TIME_FORMAT), from, content))
             },
             &Event { ty: Type::Nick { ref old_nick, ref new_nick }, ref time, .. } => {
-                try!(writeln!(&mut output, "{} *** {} is now known as {}",
+                try!(writeln!(&mut output, "[{}] *** {} is now known as {}",
                     time.with_format(&context.timezone, TIME_FORMAT), old_nick, new_nick))
             },
             &Event { ty: Type::Quit { ref nick, ref mask, ref reason }, ref time, .. } => {
-                try!(writeln!(&mut output, "{} *** Quits: {} ({}) ({})",
+                try!(writeln!(&mut output, "[{}] *** Quits: {} ({}) ({})",
                     time.with_format(&context.timezone, TIME_FORMAT), nick,
                     mask.as_ref().expect("Mask not present, but required."),
                     reason.as_ref().expect("Reason not present, but required.")))

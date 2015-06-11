@@ -21,7 +21,7 @@ use std::collections::hash_map::*;
 use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
-use ilc::event::Event::*;
+use ilc::event::{ Event, Type };
 use ilc::context::Context;
 use ilc::format::{ self, Decode };
 
@@ -51,7 +51,7 @@ fn main() {
         override_date: NaiveDate::from_ymd(2015, 6, 10)
     };
 
-    let mut parser = format::energymech::Energymech;
+    let mut parser = format::weechat3::Weechat3;
     for e in parser.decode(&context, stdin.lock()) {
         let m = match e {
             Ok(m) => m,
@@ -59,7 +59,7 @@ fn main() {
         };
 
         match m {
-            Msg { ref from, ref content, .. } => {
+            Event { ty: Type::Msg { ref from, ref content, .. }, .. } => {
                 let nick = strip_nick(from);
                 if stats.contains_key(nick) {
                     let p: &mut Person = stats.get_mut(nick).unwrap();

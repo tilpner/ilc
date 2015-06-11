@@ -19,9 +19,6 @@ use std::borrow::Cow;
 
 use chrono::offset::fixed::FixedOffset;
 use chrono::offset::TimeZone;
-use chrono::datetime::DateTime;
-
-use context::Context;
 
 /// A whole log, in memory. This structure does not specify its
 /// use. It may represent a private query, or the log of a channel.
@@ -50,7 +47,7 @@ impl Time {
     pub fn with_format(&self, tz: &FixedOffset, f: &str) -> String {
         match self {
             &Time::Unknown => panic!("Time data for this event is not present"),
-            &Time::Hms(h, m, s) => unimplemented!(),
+            &Time::Hms(_h, _m, _s) => unimplemented!(),
             &Time::Timestamp(t) => format!("{}", tz.timestamp(t, 0).format(f))
         }
     }

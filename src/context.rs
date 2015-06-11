@@ -1,5 +1,4 @@
 
-use chrono::date::Date;
 use chrono::naive::date::NaiveDate;
 use chrono::offset::fixed::FixedOffset;
 
