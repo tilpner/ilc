@@ -30,28 +30,27 @@ pub struct Weechat3;
 static TIME_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
 pub struct Iter<'a, R: 'a> where R: BufRead {
-    _phantom: PhantomData<&'a ()>,
     context: &'a Context,
     input: R,
     buffer: String
 }
 
-impl<'a: 'b, 'b, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
+impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'static>>;
     fn next(&mut self) -> Option<::Result<Event<'static>>> {
-        fn parse_time<'b, 'c>(c: &Context, date: &'b str, time: &'c str) -> Time {
+        fn parse_time(c: &Context, date: &str, time: &str) -> Time {
             Time::from_format(&c.timezone, &format!("{} {}", date, time), TIME_DATE_FORMAT)
         }
 
         loop {
-            self.buffer.clear();
-            match self.input.read_line(&mut self.buffer) {
+            let mut buffer = String::new();
+            match self.input.read_line(&mut buffer) {
                 Ok(0) | Err(_) => return None,
                 Ok(_) => ()
             }
 
             let mut split_tokens: Vec<char> = Vec::new();
-            let tokens: Vec<&'b str> = self.buffer.split(|c: char| {
+            let tokens = buffer.split(|c: char| {
                 if c.is_whitespace() { split_tokens.push(c); true } else { false }
             }).collect::<Vec<_>>();
 
@@ -60,7 +59,7 @@ impl<'a: 'b, 'b, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                 info!("Parsing:   {:?}", tokens);
             }*/
 
-            match &tokens[..tokens.len() - 1] as &'b [&'b str] {
+            match &tokens[..tokens.len() - 1] {
                 /*[date, time, "-->", nick, host, "has", "joined", channel, _..]
                 => return Some(Ok(Event {
                     ty: Type::Join {
@@ -138,7 +137,6 @@ impl<'a: 'b, 'b, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
 impl<'a, R: 'a> Decode<'static, R, Iter<'a, R>> for Weechat3 where R: BufRead {
     fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
         Iter {
-            _phantom: PhantomData,
             context: context,
             input: input,
             buffer: String::new()
