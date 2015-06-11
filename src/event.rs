@@ -105,7 +105,12 @@ pub enum Type<'a> {
         topic: Cow<'a, str>,
     },
     TopicChange {
+        nick: Option<Cow<'a, str>>,
         new_topic: Cow<'a, str>,
     },
-    Mode
+    Mode {
+        nick: Option<Cow<'a, str>>,
+        mode: Cow<'a, str>,
+        masks: Cow<'a, str>
+    }
 }

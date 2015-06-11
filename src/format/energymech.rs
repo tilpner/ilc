@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::io::{ BufRead, Write };
-use std::borrow::{ ToOwned };
+use std::borrow::{ ToOwned, Cow };
 use std::iter::{ Iterator };
 
 use event::{ Event, Type, Time };
@@ -58,10 +58,12 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
             let tokens = self.buffer.split( |c: char| {
                 if c.is_whitespace() { split_tokens.push(c); true } else { false }
             }).collect::<Vec<_>>();
+
             if log_enabled!(Info) {
                 info!("Original:  `{}`", self.buffer);
                 info!("Parsing:   {:?}", tokens);
             }
+
             match &tokens[..tokens.len() - 1] {
                 [time, "*", nick, content..] => return Some(Ok(Event {
                     ty: Type::Action {
@@ -79,10 +81,28 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                     time: parse_time(&self.context, time),
                     channel: None
                 })),
+                [time, "***", nick, "sets", "mode:", mode, masks..] => return Some(Ok(Event {
+                    ty: Type::Mode {
+                        nick: Some(nick.to_owned().into()),
+                        mode: mode.to_owned().into(),
+                        masks: rejoin(&masks, &split_tokens[6..]).to_owned().into()
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
+                })),
                 [time, "***", "Joins:", nick, host] => return Some(Ok(Event {
                     ty: Type::Join {
                         nick: nick.to_owned().into(),
                         mask: Some(strip_one(host).into())
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
+                })),
+                [time, "***", "Parts:", nick, host, reason..] => return Some(Ok(Event {
+                    ty: Type::Part {
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into()),
+                        reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into())
                     },
                     time: parse_time(&self.context, time),
                     channel: None
@@ -92,6 +112,14 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         nick: nick.to_owned().into(),
                         mask: Some(strip_one(host).into()),
                         reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into())
+                    },
+                    time: parse_time(&self.context, time),
+                    channel: None
+                })),
+                [time, "***", nick, "changes", "topic", "to", topic..] => return Some(Ok(Event {
+                    ty: Type::TopicChange {
+                        nick: Some(nick.to_owned().into()),
+                        new_topic: strip_one(&rejoin(topic, &split_tokens[6..])).into()
                     },
                     time: parse_time(&self.context, time),
                     channel: None
@@ -137,11 +165,34 @@ impl<'a, W> Encode<'a, W> for Energymech where W: Write {
                 try!(writeln!(&mut output, "[{}] *** {} is now known as {}",
                     time.with_format(&context.timezone, TIME_FORMAT), old_nick, new_nick))
             },
+            &Event { ty: Type::Mode { ref nick, ref mode, ref masks }, ref time, .. } => {
+                try!(writeln!(&mut output, "[{}] *** {} sets mode: {} {}",
+                    time.with_format(&context.timezone, TIME_FORMAT),
+                    nick.as_ref().expect("Nickname not present, but required."),
+                    mode, masks))
+            },
+            &Event { ty: Type::Join { ref nick, ref mask }, ref time, .. } => {
+                try!(writeln!(&mut output, "[{}] *** Joins: {} ({})",
+                    time.with_format(&context.timezone, TIME_FORMAT), nick,
+                    mask.as_ref().expect("Mask not present, but required.")))
+            },
+            &Event { ty: Type::Part { ref nick, ref mask, ref reason }, ref time, .. } => {
+                try!(writeln!(&mut output, "[{}] *** Parts: {} ({}) ({})",
+                    time.with_format(&context.timezone, TIME_FORMAT), nick,
+                    mask.as_ref().expect("Mask not present, but required."),
+                    reason.as_ref().unwrap_or(&Cow::Borrowed(""))))
+            },
             &Event { ty: Type::Quit { ref nick, ref mask, ref reason }, ref time, .. } => {
                 try!(writeln!(&mut output, "[{}] *** Quits: {} ({}) ({})",
                     time.with_format(&context.timezone, TIME_FORMAT), nick,
                     mask.as_ref().expect("Mask not present, but required."),
                     reason.as_ref().expect("Reason not present, but required.")))
+            },
+            &Event { ty: Type::TopicChange { ref nick, ref new_topic }, ref time, .. } => {
+                try!(writeln!(&mut output, "[{}] *** {} changes topic to '{}'",
+                    time.with_format(&context.timezone, TIME_FORMAT),
+                    nick.as_ref().expect("Nick not present, but required."),
+                    new_topic))
             },
             _ => ()
         }
