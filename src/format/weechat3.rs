@@ -54,61 +54,67 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                 if c.is_whitespace() { split_tokens.push(c); true } else { false }
             }).collect::<Vec<_>>();
 
-            /*if log_enabled!(Info) {
+            if log_enabled!(Info) {
                 info!("Original:  `{}`", self.buffer);
                 info!("Parsing:   {:?}", tokens);
-            }*/
+            }
 
             match &tokens[..tokens.len() - 1] {
-                /*[date, time, "-->", nick, host, "has", "joined", channel, _..]
+                [date, time, "-->", nick, host, "has", "joined", channel, _..]
                 => return Some(Ok(Event {
                     ty: Type::Join {
-                        nick: nick.to_owned(),
-                        mask: Some(strip_one(host)),
-                        time: timestamp(date, time)
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into()),
                     },
-                    channel: Some(channel.into_cow()),
+                    channel: Some(channel.to_owned().into()),
+                    time: parse_time(&self.context, date, time)
                 })),
                 [date, time, "<--", nick, host, "has", "left", channel, reason..]
                 => return Some(Ok(Event {
                     ty: Type::Part {
-                        nick: nick.to_owned(),
-                        mask: Some(strip_one(host)),
-                        reason: Some(strip_one(&rejoin(reason, &split_tokens[8..]))),
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into()),
+                        reason: Some(strip_one(&rejoin(reason, &split_tokens[8..])).into()),
                     },
-                    channel: Some(channel.to_owned()),
-                    time: timestamp(date, time)
+                    channel: Some(channel.to_owned().into()),
+                    time: parse_time(&self.context, date, time)
                 })),
                 [date, time, "<--", nick, host, "has", "quit", reason..]
                 => return Some(Ok(Event {
                     ty: Type::Quit {
-                        nick: nick.to_owned(),
-                        mask: Some(strip_one(host)),
-                        reason: Some(strip_one(&rejoin(reason, &split_tokens[7..]))),
-                    }
+                        nick: nick.to_owned().into(),
+                        mask: Some(strip_one(host).into()),
+                        reason: Some(strip_one(&rejoin(reason, &split_tokens[7..])).into()),
+                    },
+                    time: parse_time(&self.context, date, time),
+                    channel: None
                 })),
                 [date, time, "--", notice, content..]
                     if notice.starts_with("Notice(")
                 => return Some(Ok(Event {
                     ty: Type::Notice {
-                        nick: notice["Notice(".len()..notice.len() - 2].to_owned(),
+                        from: notice["Notice(".len()..notice.len() - 2].to_owned().into(),
                         content: rejoin(content, &split_tokens[4..]),
-                        time: timestamp(date, time)
-                    }
+                    },
+                    time: parse_time(&self.context, date, time),
+                    channel: None
                 })),
                 [date, time, "--", "irc:", "disconnected", "from", "server", _..]
                 => return Some(Ok(Event {
-                        ty: Type::Disconnect {
-                        time: timestamp(date, time)
-                    }
+                    ty: Type::Disconnect,
+                    time: parse_time(&self.context, date, time),
+                    channel: None
                 })),
                 [date, time, "--", nick, verb, "now", "known", "as", new_nick]
                     if verb == "is" || verb == "are"
                 => return Some(Ok(Event {
                     ty: Type::Nick {
-                    old: nick.to_owned(), new: new_nick.to_owned(), time: timestamp(date, time)
-                    }
-                })),*/
+                        old_nick: nick.to_owned().into(),
+                        new_nick: new_nick.to_owned().into()
+                    },
+                    time: parse_time(&self.context, date, time),
+                    channel: None
+                })),
                 [date, time, sp, "*", nick, msg..]
                     if sp.clone().is_empty()
                 => return Some(Ok(Event {
@@ -116,7 +122,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         from: nick.to_owned().into(),
                         content: rejoin(msg, &split_tokens[5..]),
                     },
-                    time: parse_time(&self.context, &date.clone().to_owned(), &time.clone().to_owned()),
+                    time: parse_time(&self.context, date, time),
                     channel: None
                 })),
                 [date, time, nick, msg..]
@@ -125,7 +131,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
                         from: nick.to_owned().into(),
                         content: rejoin(msg, &split_tokens[3..]),
                     },
-                    time: parse_time(&self.context, &date, &time),
+                    time: parse_time(&self.context, date, time),
                     channel: None
                 })),
                 _ => ()
@@ -152,37 +158,45 @@ impl<'a, W> Encode<'a, W> for Weechat3 where W: Write {
         match event {
             &Event { ty: Type::Msg { ref from, ref content, .. }, ref time, .. } => {
                 try!(writeln!(&mut output, "{}\t{}\t{}",
-                              time.with_format(&context.timezone, TIME_DATE_FORMAT), from, content))
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), from, content))
             },
             &Event { ty: Type::Action { ref from, ref content, .. }, ref time, .. } => {
                 try!(writeln!(&mut output, "{}\t *\t{} {}",
-                              time.with_format(&context.timezone, TIME_DATE_FORMAT), from, content))
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), from, content))
             },
-            /*&Event::Join { ref nick, ref mask, ref channel, ref time } => {
+            &Event { ty: Type::Join { ref nick, ref mask, .. }, ref channel, ref time } => {
                 try!(writeln!(&mut output, "{}\t-->\t{} ({}) has joined {}",
-                date(*time), nick, mask, channel))
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), nick,
+                    mask.as_ref().expect("Hostmask not present, but required."),
+                    channel.as_ref().expect("Channel not present, but required.")))
             },
-            &Event::Part { ref nick, ref mask, ref channel, ref time, ref reason } => {
+            &Event { ty: Type::Part { ref nick, ref mask, ref reason }, ref channel, ref time } => {
                 try!(write!(&mut output, "{}\t<--\t{} ({}) has left {}",
-                date(*time), nick, mask, channel));
-                if reason.len() > 0 {
-                    try!(write!(&mut output, " ({})", reason));
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), nick,
+                    mask.as_ref().expect("Hostmask not present, but required."),
+                    channel.as_ref().expect("Channel not present, but required.")));
+                if reason.is_some() && reason.as_ref().unwrap().len() > 0 {
+                    try!(write!(&mut output, " ({})", reason.as_ref().unwrap()));
                 }
                 try!(write!(&mut output, "\n"))
             },
-            &Event::Quit { ref nick, ref mask, ref time, ref reason } => {
-                try!(write!(&mut output, "{}\t<--\t{} ({}) has quit", date(*time), nick, mask));
-                if reason.len() > 0 {
-                    try!(write!(&mut output, " ({})", reason));
+            &Event { ty: Type::Quit { ref nick, ref mask, ref reason }, ref time, .. } => {
+                try!(write!(&mut output, "{}\t<--\t{} ({}) has quit",
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), nick,
+                    mask.as_ref().expect("Hostmask not present, but required.")));
+                if reason.is_some() && reason.as_ref().unwrap().len() > 0 {
+                    try!(write!(&mut output, " ({})", reason.as_ref().unwrap()));
                 }
                 try!(write!(&mut output, "\n"))
             },
-            &Event::Disconnect { ref time } => {
-                try!(writeln!(&mut output, "{}\t--\tirc: disconnected from server", date(*time)))
+            &Event { ty: Type::Disconnect, ref time, .. } => {
+                try!(writeln!(&mut output, "{}\t--\tirc: disconnected from server",
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT)))
             },
-            &Event::Notice { ref nick, ref content, ref time } => {
-                try!(writeln!(&mut output, "{}\t--\tNotice({}): {}", date(*time), nick, content))
-            },*/
+            &Event { ty: Type::Notice { ref from, ref content }, ref time, .. } => {
+                try!(writeln!(&mut output, "{}\t--\tNotice({}): {}",
+                    time.with_format(&context.timezone, TIME_DATE_FORMAT), from, content))
+            },
             _ => ()
         }
         Ok(())

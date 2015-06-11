@@ -21,7 +21,7 @@ use std::collections::hash_map::*;
 use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
-use ilc::log::Event::*;
+use ilc::event::Event::*;
 use ilc::context::Context;
 use ilc::format::{ self, Decode };
 
