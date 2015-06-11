@@ -21,8 +21,9 @@ extern crate log as l;
 extern crate rustc_serialize;
 extern crate bincode;
 
-pub mod log;
+pub mod event;
 pub mod format;
+pub mod context;
 
 use std::convert::From;
 use std::{ io, result };

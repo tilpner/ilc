@@ -13,11 +13,16 @@
 // limitations under the License.
 
 extern crate ilc;
+extern crate chrono;
 
 use std::io;
 use std::collections::hash_map::*;
 
-use ilc::log::Event::*;
+use chrono::offset::fixed::FixedOffset;
+use chrono::naive::date::NaiveDate;
+
+use ilc::event::{ Event, Type };
+use ilc::context::Context;
 use ilc::format::{ self, Decode };
 
 struct Person {
@@ -41,16 +46,20 @@ fn main() {
     let stdin = io::stdin();
 
     let mut stats: HashMap<String, Person> = HashMap::new();
+    let context = Context {
+        timezone: FixedOffset::west(0),
+        override_date: NaiveDate::from_ymd(2015, 6, 10)
+    };
 
     let mut parser = format::weechat3::Weechat3;
-    for e in parser.decode(stdin.lock()) {
+    for e in parser.decode(&context, stdin.lock()) {
         let m = match e {
             Ok(m) => m,
             Err(err) => panic!(err)
         };
 
         match m {
-            Msg { ref from, ref content, .. } => {
+            Event { ty: Type::Msg { ref from, ref content, .. }, .. } => {
                 let nick = strip_nick(from);
                 if stats.contains_key(nick) {
                     let p: &mut Person = stats.get_mut(nick).unwrap();

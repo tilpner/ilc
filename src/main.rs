@@ -16,6 +16,7 @@
 #![plugin(regex_macros)]
 
 extern crate ilc;
+extern crate chrono;
 extern crate docopt;
 extern crate rustc_serialize;
 extern crate libc;
@@ -29,6 +30,10 @@ use std::io::{ self, BufReader };
 
 use docopt::Docopt;
 
+use chrono::offset::fixed::FixedOffset;
+use chrono::naive::date::NaiveDate;
+
+use ilc::context::Context;
 use ilc::format::{ self, Encode, Decode };
 
 static USAGE: &'static str = r#"
@@ -71,13 +76,18 @@ fn main() {
     }
 
     if args.cmd_parse {
-        let mut parser = format::weechat3::Weechat3;
+        let context = Context {
+            timezone: FixedOffset::west(0),
+            override_date: NaiveDate::from_ymd(2015, 6, 10)
+        };
+        let mut parser = format::energymech::Energymech;
+        let formatter = format::energymech::Energymech;
         for file in args.arg_file {
             let f: BufReader<File> = BufReader::new(File::open(file).unwrap());
-            let iter = parser.decode(f);
+            let iter = parser.decode(&context, f);
             for e in iter {
                 info!("Parsed: {:?}", e);
-                drop(parser.encode(io::stdout(), &e.unwrap()));
+                drop(formatter.encode(&context, io::stdout(), &e.unwrap()));
             }
         }
     }
