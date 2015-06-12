@@ -26,7 +26,7 @@ extern crate log;
 extern crate env_logger;
 
 use std::fs::File;
-use std::io::{ self, BufReader };
+use std::io::{ self, Read, BufRead, BufReader, Write };
 use std::str::FromStr;
 
 use docopt::Docopt;
@@ -35,6 +35,7 @@ use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
 use ilc::context::Context;
+use ilc::event::Event;
 use ilc::format::{ self, Encode, Decode };
 
 static USAGE: &'static str = r#"
@@ -67,6 +68,8 @@ struct Args {
     cmd_parse: bool,
     cmd_convert: bool,
     arg_file: Vec<String>,
+    arg_informat: Option<String>,
+    arg_outformat: Option<String>,
     flag_help: bool,
     flag_version: bool,
     flag_date: Option<String>,
@@ -113,11 +116,19 @@ fn main() {
     if args.cmd_convert {
         let stdin = io::stdin();
 
-        let mut parser = format::energymech::Energymech;
-        let formatter = format::binary::Binary;
+        let mut parser: &mut Decode<&mut BufRead, Box<Iterator<Item=Event>>> = match args.arg_informat.map(|s| s.as_ref()) {
+            Some("energymech") => &mut format::energymech::Energymech,
+            Some("weechat3") => &mut format::weechat3::Weechat3,
+            Some("binary") => &mut format::binary::Binary
+        };
+        let formatter: &Encode<&mut Write> = match args.arg_outformat.map(|s| s.as_ref()) {
+            Some("energymech") => &format::energymech::Energymech,
+            Some("weechat3") => &format::weechat3::Weechat3,
+            Some("binary") => &format::binary::Binary
+        };
 
-        for e in parser.decode(&context, stdin.lock()) {
-            drop(formatter.encode(&context, io::stdout(), &e.unwrap()))
+        for e in parser.decode(&context, &mut stdin.lock()) {
+            drop(formatter.encode(&context, &mut io::stdout(), &e.unwrap()))
         }
     }
 }
