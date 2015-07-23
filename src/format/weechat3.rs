@@ -137,8 +137,9 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Weechat3 where R: BufRead {
-    fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
+impl<'a, I: 'a> Decode<'a, I> for Weechat3 where I: BufRead {
+    type Output = Iter<'a, I>;
+    fn decode(&'a mut self, context: &'a Context, input: I) -> Iter<'a, I> {
         Iter {
             context: context,
             input: input,

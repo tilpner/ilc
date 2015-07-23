@@ -151,7 +151,8 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Energymech where R: BufRead {
+impl<'a, R: 'a> Decode<'a, R> for Energymech where R: BufRead {
+    type Output = Iter<'a, R>;
     fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
         Iter {
             context: context,

@@ -44,7 +44,8 @@ impl<'a, W> Encode<'a, W> for Binary where W: Write {
     }
 }
 
-impl<'a, R: 'a> Decode<'a, R, Iter<'a, R>> for Binary where R: BufRead {
+impl<'a, R: 'a> Decode<'a, R> for Binary where R: BufRead {
+    type Output = Iter<'a, R>;
     fn decode(&'a mut self, _context: &'a Context, input: R) -> Iter<R> {
         Iter { _phantom: PhantomData, input: input }
     }

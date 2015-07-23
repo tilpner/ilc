@@ -30,8 +30,22 @@ pub trait Encode<'a, W> where W: Write {
     fn encode(&'a self, context: &'a Context, output: W, event: &'a Event) -> ::Result<()>;
 }
 
-pub trait Decode<'a, R, O> where R: BufRead, O: Iterator<Item = ::Result<Event<'a>>> {
-    fn decode(&'a mut self, context: &'a Context, input: R) -> O;
+pub trait Decode<'a, Input> where Input: BufRead,
+                                  Self::Output: Iterator<Item = ::Result<Event<'a>>> + 'a {
+    type Output;
+    fn decode(&'a mut self, context: &'a Context, input: Input) -> Self::Output;
+}
+
+pub trait DecodeBox<'a, I> {
+    fn decode_box(&'a mut self, context: &'a Context, input: I)
+    -> Box<Iterator<Item = ::Result<Event>> + 'a>;
+}
+
+impl<'a, T, I: BufRead> DecodeBox<'a, I> for T where T: Decode<'a, I> {
+    fn decode_box(&'a mut self, context: &'a Context, input: I)
+    -> Box<Iterator<Item = ::Result<Event>> + 'a> {
+        Box::new(self.decode(context, input))
+    }
 }
 
 fn rejoin(s: &[&str], splits: &[char]) -> Cow<'static, str> {
