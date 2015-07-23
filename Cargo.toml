@@ -23,6 +23,7 @@ rustc-serialize = "*"
 log = "*"
 env_logger = "*"
 bincode = "*"
+combine = "*"
 
 [profile.release]
 opt-level = 3

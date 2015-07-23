@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![feature(plugin, slice_patterns, core, custom_derive)]
+#![feature(plugin, slice_patterns, custom_derive, iter_arith)]
 #![plugin(regex_macros)]
 extern crate regex;
 extern crate chrono;

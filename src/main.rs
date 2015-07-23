@@ -25,8 +25,9 @@ extern crate regex;
 extern crate log;
 extern crate env_logger;
 
+use std::process;
+use std::io::{ self, BufReader };
 use std::fs::File;
-use std::io::{ self, Read, BufRead, BufReader, Write };
 use std::str::FromStr;
 
 use docopt::Docopt;
@@ -34,9 +35,9 @@ use docopt::Docopt;
 use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
-use ilc::context::Context;
 use ilc::event::Event;
-use ilc::format::{ self, Encode, Decode };
+use ilc::context::Context;
+use ilc::format::{ self, Encode, Decode, DecodeBox };
 
 static USAGE: &'static str = r#"
 d8b   888
@@ -77,13 +78,6 @@ struct Args {
     flag_channel: Option<String>
 }
 
-/*fn encode<'a, W, F>(format: &str) -> F where F: Encode<'a, W> {
-    match format {
-        "weechat3" => format::weechat3::Weechat3,
-        "energymech" => format::energymech::Energymech
-    }
-}*/
-
 fn main() {
     env_logger::init().unwrap();
     let args: Args = Docopt::new(USAGE)
@@ -91,7 +85,7 @@ fn main() {
                .unwrap_or_else(|e| e.exit());
     if args.flag_help {
         println!("{}", USAGE);
-        unsafe { libc::funcs::c95::stdlib::exit(1) }
+        process::exit(1)
     }
 
     let context = Context {
@@ -116,18 +110,13 @@ fn main() {
     if args.cmd_convert {
         let stdin = io::stdin();
 
-        let mut parser: &mut Decode<&mut BufRead, Box<Iterator<Item=Event>>> = match args.arg_informat.map(|s| s.as_ref()) {
-            Some("energymech") => &mut format::energymech::Energymech,
-            Some("weechat3") => &mut format::weechat3::Weechat3,
-            Some("binary") => &mut format::binary::Binary
-        };
-        let formatter: &Encode<&mut Write> = match args.arg_outformat.map(|s| s.as_ref()) {
-            Some("energymech") => &format::energymech::Energymech,
-            Some("weechat3") => &format::weechat3::Weechat3,
-            Some("binary") => &format::binary::Binary
-        };
+        let informat = args.arg_informat.expect("Must provide informat");
+        let outformat = args.arg_outformat.expect("Must provide outformat");
+        let mut parser = format::decoder(&informat).expect("Decoder not available");
+        let formatter = format::encoder(&outformat).expect("Encoder not available");
 
-        for e in parser.decode(&context, &mut stdin.lock()) {
+        let mut lock = stdin.lock();
+        for e in parser.decode_box(&context, &mut lock) {
             drop(formatter.encode(&context, &mut io::stdout(), &e.unwrap()))
         }
     }
