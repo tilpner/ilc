@@ -28,6 +28,7 @@ extern crate env_logger;
 use std::process;
 use std::io::{ self, BufReader };
 use std::fs::File;
+use std::error::Error;
 use std::str::FromStr;
 
 use docopt::Docopt;
@@ -35,7 +36,6 @@ use docopt::Docopt;
 use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
-use ilc::event::Event;
 use ilc::context::Context;
 use ilc::format::{ self, Encode, Decode, DecodeBox };
 
@@ -78,6 +78,16 @@ struct Args {
     flag_channel: Option<String>
 }
 
+fn error(e: Box<Error>) -> ! {
+    println!("{}", e.description());
+    let mut e = e.cause();
+    while let Some(err) = e {
+        println!("\t{}", err.description());
+        e = err.cause();
+    }
+    process::exit(1)
+}
+
 fn main() {
     env_logger::init().unwrap();
     let args: Args = Docopt::new(USAGE)
@@ -112,12 +122,17 @@ fn main() {
 
         let informat = args.arg_informat.expect("Must provide informat");
         let outformat = args.arg_outformat.expect("Must provide outformat");
-        let mut parser = format::decoder(&informat).expect("Decoder not available");
-        let formatter = format::encoder(&outformat).expect("Encoder not available");
+        let mut decoder = format::decoder(&informat).expect("Decoder not available");
+        let encoder = format::encoder(&outformat).expect("Encoder not available");
 
         let mut lock = stdin.lock();
-        for e in parser.decode_box(&context, &mut lock) {
-            drop(formatter.encode(&context, &mut io::stdout(), &e.unwrap()))
+        for e in decoder.decode_box(&context, &mut lock) {
+            match e {
+                Ok(e) => {
+                    let _ = encoder.encode(&context, &mut io::stdout(), &e);
+                },
+                Err(e) => error(Box::new(e))
+            }
         }
     }
 }

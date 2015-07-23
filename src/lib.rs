@@ -27,6 +27,8 @@ pub mod context;
 
 use std::convert::From;
 use std::{ io, result };
+use std::error::Error;
+use std::fmt::{ self, Display, Formatter };
 
 use chrono::format::ParseError;
 
@@ -39,6 +41,31 @@ pub enum IlcError {
     BincodeDecode,
     BincodeEncode,
     Io(io::Error)
+}
+
+impl Display for IlcError {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        fmt.write_str(self.description())
+    }
+}
+
+impl Error for IlcError {
+    fn description(&self) -> &str {
+        use IlcError::*;
+        match self {
+            &Parse(_) => "error while parsing",
+            &Chrono(_) => "error while parsing time strings",
+            &BincodeDecode => "error while decoding from binary",
+            &BincodeEncode => "error while encoding to binary",
+            &Io(_) => "error during input/output"
+        }
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        match self {
+            _ => None
+        }
+    }
 }
 
 impl From<ParseError> for IlcError {
