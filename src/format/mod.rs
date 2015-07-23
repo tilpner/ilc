@@ -48,6 +48,24 @@ impl<'a, T, I: BufRead> DecodeBox<'a, I> for T where T: Decode<'a, I> {
     }
 }
 
+pub fn decoder(format: &str) -> Option<Box<DecodeBox<&mut BufRead>>> {
+    match format {
+        "energymech" => Some(Box::new(energymech::Energymech)),
+        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+        "binary" => Some(Box::new(binary::Binary)),
+        _ => None
+    }
+}
+
+pub fn encoder(format: &str) -> Option<Box<Encode<&mut Write>>> {
+    match format {
+        "energymech" => Some(Box::new(energymech::Energymech)),
+        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+        "binary" => Some(Box::new(binary::Binary)),
+        _ => None
+    }
+}
+
 fn rejoin(s: &[&str], splits: &[char]) -> Cow<'static, str> {
     let len = s.iter().map(|s| s.len()).sum();
     let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
