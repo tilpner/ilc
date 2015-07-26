@@ -48,7 +48,7 @@ impl<'a, T, I: BufRead> DecodeBox<'a, I> for T where T: Decode<'a, I> {
     }
 }
 
-pub fn decoder(format: &str) -> Option<Box<DecodeBox<&mut BufRead>>> {
+pub fn decoder<'a>(format: &str) -> Option<Box<DecodeBox<'a, &'a mut BufRead>>> {
     match format {
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),
@@ -57,7 +57,7 @@ pub fn decoder(format: &str) -> Option<Box<DecodeBox<&mut BufRead>>> {
     }
 }
 
-pub fn encoder(format: &str) -> Option<Box<Encode<&mut Write>>> {
+pub fn encoder<'a>(format: &str) -> Option<Box<Encode<'a, &'a mut Write>>> {
     match format {
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),

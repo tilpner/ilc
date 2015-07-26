@@ -24,9 +24,10 @@ extern crate regex;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate glob;
 
 use std::process;
-use std::io::{ self, BufReader };
+use std::io::{ self, Read, BufRead, BufReader, Write, BufWriter };
 use std::fs::File;
 use std::error::Error;
 use std::str::FromStr;
@@ -37,9 +38,13 @@ use docopt::Docopt;
 use chrono::offset::fixed::FixedOffset;
 use chrono::naive::date::NaiveDate;
 
+use glob::glob;
+
 use ilc::context::Context;
 use ilc::format::{ self, Encode, Decode, DecodeBox };
 use ilc::event::{ Event, Type };
+
+mod chain;
 
 static USAGE: &'static str = r#"
 d8b   888
@@ -54,17 +59,21 @@ Y8P   888
 A converter and statistics utility for IRC log files.
 
 Usage:
-  ilc parse <file>...
-  ilc convert <informat> <outformat> [--date DATE] [--tz SECS] [--channel CH]
-  ilc freq
+  ilc parse [options] [-i FILE...]
+  ilc convert [options] [-i FILE...]
+  ilc freq [options] [-i FILE...]
   ilc (-h | --help | -v | --version)
 
 Options:
   -h --help         Show this screen.
   -v --version      Show the version (duh).
   --date DATE       Override the date for this log. ISO 8601, YYYY-MM-DD.
-  --tz SECONDS      UTC offset in the direction of the western hemisphere. [default: 0]
+  --tz SECONDS      UTC offset in the direction of the western hemisphere.
   --channel CH      Set a channel for the given log.
+  --inf INF         Set the input format.
+  --outf OUTF       Set the output format.
+  --in -i IN        Give an input file, instead of stdin.
+  --out -o OUT      Give an output file, instead of stdout.
 "#;
 
 #[derive(RustcDecodable, Debug)]
@@ -73,23 +82,52 @@ struct Args {
     cmd_convert: bool,
     cmd_freq: bool,
     arg_file: Vec<String>,
-    arg_informat: Option<String>,
-    arg_outformat: Option<String>,
+    flag_in: Vec<String>,
+    flag_out: Option<String>,
+    flag_inf: Option<String>,
+    flag_outf: Option<String>,
     flag_help: bool,
     flag_version: bool,
     flag_date: Option<String>,
-    flag_tz: i32,
+    flag_tz: Option<String>,
     flag_channel: Option<String>
 }
 
 fn error(e: Box<Error>) -> ! {
-    println!("{}", e.description());
+    let _ = writeln!(&mut io::stderr(), "Error: {}", e);
     let mut e = e.cause();
     while let Some(err) = e {
-        println!("\t{}", err.description());
+        let _ = writeln!(&mut io::stderr(), "\t{}", err);
         e = err.cause();
     }
     process::exit(1)
+}
+
+fn die(s: &str) -> ! {
+    let _ = writeln!(&mut io::stderr(), "Aborting: {}", s);
+    process::exit(1)
+}
+
+fn force_decoder<'a>(s: Option<String>) -> Box<DecodeBox<'a, &'a mut BufRead>> {
+    let inf = match s {
+        Some(s) => s,
+        None => die("You didn't specify the input format")
+    };
+    match format::decoder(&inf) {
+        Some(d) => d,
+        None => die(&format!("The format `{}` is unknown to me", inf))
+    }
+}
+
+fn force_encoder<'a>(s: Option<String>) -> Box<Encode<'a, &'a mut Write>> {
+    let outf = match s {
+        Some(s) => s,
+        None => die("You didn't specify the output format")
+    };
+    match format::encoder(&outf) {
+        Some(e) => e,
+        None => die(&format!("The format `{}` is unknown to me", outf))
+    }
 }
 
 fn main() {
@@ -103,44 +141,50 @@ fn main() {
     }
 
     let context = Context {
-        timezone: FixedOffset::west(args.flag_tz),
+        timezone: FixedOffset::west(args.flag_tz.and_then(|s| s.parse().ok()).unwrap_or(0)),
         override_date: args.flag_date.and_then(|d| NaiveDate::from_str(&d).ok()),
         channel: args.flag_channel.clone()
     };
 
-    if args.cmd_parse {
-        let mut parser = format::energymech::Energymech;
-        let formatter = format::binary::Binary;
-        for file in args.arg_file {
-            let f: BufReader<File> = BufReader::new(File::open(file).unwrap());
-            let iter = parser.decode(&context, f);
-            for e in iter {
-                info!("Parsed: {:?}", e);
-                drop(formatter.encode(&context, io::stdout(), &e.unwrap()));
-            }
+    let mut input: Box<BufRead> = if args.flag_in.len() > 0 {
+        let input_files = args.flag_in.iter()
+            .flat_map(|p| {
+                match glob(p) {
+                    Ok(paths) => paths,
+                    Err(e) => die(&format!("{}", e.msg))
+                }
+            }).filter_map(Result::ok).map(|p| File::open(p).unwrap()).collect();
+        Box::new(BufReader::new(chain::Chain::new(input_files)))
+    } else {
+        Box::new(BufReader::new(io::stdin()))
+    };
+
+    let mut output: Box<Write> = if let Some(out) = args.flag_out {
+        match File::create(out) {
+            Ok(f) => Box::new(BufWriter::new(f)),
+            Err(e) => error(Box::new(e))
         }
-    }
+    } else {
+        Box::new(BufWriter::new(io::stdout()))
+    };
 
-    if args.cmd_convert {
-        let stdin = io::stdin();
-
-        let informat = args.arg_informat.expect("Must provide informat");
-        let outformat = args.arg_outformat.expect("Must provide outformat");
-        let mut decoder = format::decoder(&informat).expect("Decoder not available");
-        let encoder = format::encoder(&outformat).expect("Encoder not available");
-
-        let mut lock = stdin.lock();
-        for e in decoder.decode_box(&context, &mut lock) {
+    if args.cmd_parse {
+        let mut decoder = force_decoder(args.flag_inf);
+        let encoder = force_encoder(args.flag_outf);
+        for e in decoder.decode_box(&context, &mut input) {
+            info!("Parsed: {:?}", e);
+            let _ = encoder.encode(&context, &mut output, &e.unwrap());
+        }
+    } else if args.cmd_convert {
+        let mut decoder = force_decoder(args.flag_inf);
+        let encoder = force_encoder(args.flag_outf);
+        for e in decoder.decode_box(&context, &mut input) {
             match e {
-                Ok(e) => {
-                    let _ = encoder.encode(&context, &mut io::stdout(), &e);
-                },
+                Ok(e) => { let _ = encoder.encode(&context, &mut io::stdout(), &e); },
                 Err(e) => error(Box::new(e))
             }
         }
-    }
-
-    if args.cmd_freq {
+    } else if args.cmd_freq {
         struct Person {
             lines: u32,
             words: u32
@@ -158,12 +202,10 @@ fn main() {
             }
         }
 
-        let stdin = io::stdin();
-
         let mut stats: HashMap<String, Person> = HashMap::new();
 
-        let mut parser = format::weechat3::Weechat3;
-        for e in parser.decode(&context, stdin.lock()) {
+        let mut decoder = force_decoder(args.flag_inf);
+        for e in decoder.decode_box(&context, &mut input) {
             let m = match e {
                 Ok(m) => m,
                 Err(err) => panic!(err)
@@ -191,7 +233,7 @@ fn main() {
         stats.sort_by(|&(_, ref a), &(_, ref b)| b.words.cmp(&a.words));
 
         for &(ref name, ref stat) in stats.iter().take(10) {
-            println!("{}:\n\tLines: {}\n\tWords: {}", name, stat.lines, stat.words)
+            let _ = write!(&mut output, "{}:\n\tLines: {}\n\tWords: {}\n", name, stat.lines, stat.words);
         }
     }
 }

@@ -19,6 +19,7 @@ log = "*"
 env_logger = "*"
 bincode = "*"
 combine = "*"
+glob = "*"
 
 [profile.release]
 opt-level = 3
