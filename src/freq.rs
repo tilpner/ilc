@@ -34,7 +34,7 @@ fn words(s: &str) -> u32 {
     s.split_whitespace().filter(|s| !s.is_empty()).count() as u32
 }
 
-fn strip_nick(s: &str) -> &str {
+fn strip_nick_prefix(s: &str) -> &str {
     if s.is_empty() { return s }
     match s.as_bytes()[0] {
         b'~' | b'&' | b'@' | b'%' | b'+' => &s[1..],
@@ -61,7 +61,7 @@ fn main() {
 
         match m {
             Event { ty: Type::Msg { ref from, ref content, .. }, .. } => {
-                let nick = strip_nick(from);
+                let nick = strip_nick_prefix(from);
                 if stats.contains_key(nick) {
                     let p: &mut Person = stats.get_mut(nick).unwrap();
                     p.lines += 1;
