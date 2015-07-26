@@ -9,11 +9,6 @@ authors = ["Till Hoeppner <till@hoeppner.ws>"]
 name = "ilc"
 doc = false
 
-[[bin]]
-name = "freq"
-path = "src/freq.rs"
-doc = false
-
 [dependencies]
 regex = "*"
 regex_macros = "*"
