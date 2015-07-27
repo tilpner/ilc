@@ -33,8 +33,12 @@ pub struct Iter<'a, R: 'a> where R: BufRead {
 impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
-        Some(Decodable::decode(&mut Decoder::new(&mut self.input))
-             .map_err(|e| ::IlcError::MsgpackDecode(e)))
+        use msgpack::decode;
+        match Event::decode(&mut Decoder::new(&mut self.input)) {
+            Ok(e) => Some(Ok(e)),
+            Err(decode::serialize::Error::InvalidMarkerRead(decode::ReadError::UnexpectedEOF)) => None,
+            Err(e) => Some(Err(::IlcError::MsgpackDecode(e)))
+        }
     }
 }
 
