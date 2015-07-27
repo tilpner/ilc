@@ -41,6 +41,8 @@ pub enum IlcError {
     Chrono(ParseError),
     BincodeDecode,
     BincodeEncode,
+    MsgpackEncode(msgpack::encode::serialize::Error),
+    MsgpackDecode(msgpack::decode::serialize::Error),
     Io(io::Error)
 }
 
@@ -58,13 +60,22 @@ impl Error for IlcError {
             &Chrono(_) => "error while parsing time strings",
             &BincodeDecode => "error while decoding from binary",
             &BincodeEncode => "error while encoding to binary",
+            &MsgpackDecode(_) => "error while decoding from msgpack",
+            &MsgpackEncode(_) => "error while encoding to msgpack",
             &Io(_) => "error during input/output"
         }
     }
 
     fn cause(&self) -> Option<&Error> {
+        use IlcError::*;
         match self {
-            _ => None
+            &Parse(ref _e) => None,
+            &Chrono(ref e) => Some(e),
+            &BincodeDecode => None,
+            &BincodeEncode => None,
+            &MsgpackDecode(ref e) => Some(e),
+            &MsgpackEncode(ref e) => Some(e),
+            &Io(ref e) => Some(e)
         }
     }
 }

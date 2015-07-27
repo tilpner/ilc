@@ -208,7 +208,7 @@ fn main() {
         for e in decoder.decode_box(&context, &mut input) {
             let m = match e {
                 Ok(m) => m,
-                Err(err) => panic!(err)
+                Err(err) => error(Box::new(err))
             };
 
             match m {

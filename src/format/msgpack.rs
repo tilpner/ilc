@@ -34,14 +34,14 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
         Some(Decodable::decode(&mut Decoder::new(&mut self.input))
-             .map_err(|_| ::IlcError::BincodeDecode))
+             .map_err(|e| ::IlcError::MsgpackDecode(e)))
     }
 }
 
 impl<'a, W> Encode<'a, W> for Msgpack where W: Write {
     fn encode(&'a self, _context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
         event.encode(&mut Encoder::new(&mut output))
-            .map_err(|_| ::IlcError::BincodeEncode)
+            .map_err(|e| ::IlcError::MsgpackEncode(e))
     }
 }
 
