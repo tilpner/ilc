@@ -20,6 +20,7 @@ extern crate chrono;
 extern crate log as l;
 extern crate rustc_serialize;
 extern crate bincode;
+extern crate rmp as msgpack;
 
 pub mod event;
 pub mod format;

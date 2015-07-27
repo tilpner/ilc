@@ -20,6 +20,7 @@ env_logger = "*"
 bincode = "*"
 combine = "*"
 glob = "*"
+rmp = "*"
 
 [profile.release]
 opt-level = 3

@@ -25,6 +25,7 @@ use context::Context;
 pub mod weechat3;
 pub mod energymech;
 pub mod binary;
+pub mod msgpack;
 
 pub trait Encode<'a, W> where W: Write {
     fn encode(&'a self, context: &'a Context, output: W, event: &'a Event) -> ::Result<()>;
@@ -53,6 +54,7 @@ pub fn decoder<'a>(format: &str) -> Option<Box<DecodeBox<'a, &'a mut BufRead>>> 
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),
         "binary" => Some(Box::new(binary::Binary)),
+        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
@@ -62,6 +64,7 @@ pub fn encoder<'a>(format: &str) -> Option<Box<Encode<'a, &'a mut Write>>> {
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),
         "binary" => Some(Box::new(binary::Binary)),
+        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
