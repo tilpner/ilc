@@ -25,6 +25,7 @@ extern crate regex;
 extern crate log;
 extern crate env_logger;
 extern crate glob;
+extern crate blist;
 
 use std::process;
 use std::io::{ self, Read, BufRead, BufReader, Write, BufWriter };
@@ -42,9 +43,12 @@ use glob::glob;
 
 use ilc::context::Context;
 use ilc::format::{ self, Encode, Decode, DecodeBox };
-use ilc::event::{ Event, Type };
+use ilc::event::{ Event, Type, NoTimeHash };
+
+use ageset::AgeSet;
 
 mod chain;
+mod ageset;
 
 static USAGE: &'static str = r#"
 d8b   888
@@ -62,6 +66,8 @@ Usage:
   ilc parse [options] [-i FILE...]
   ilc convert [options] [-i FILE...]
   ilc freq [options] [-i FILE...]
+  ilc sort [options] [-i FILE...]
+  ilc dedup [options] [-i FILE...]
   ilc (-h | --help | -v | --version)
 
 Options:
@@ -81,6 +87,8 @@ struct Args {
     cmd_parse: bool,
     cmd_convert: bool,
     cmd_freq: bool,
+    cmd_sort: bool,
+    cmd_dedup: bool,
     arg_file: Vec<String>,
     flag_in: Vec<String>,
     flag_out: Option<String>,
@@ -180,7 +188,7 @@ fn main() {
         let encoder = force_encoder(args.flag_outf);
         for e in decoder.decode_box(&context, &mut input) {
             match e {
-                Ok(e) => { let _ = encoder.encode(&context, &mut io::stdout(), &e); },
+                Ok(e) => { let _ = encoder.encode(&context, &mut output, &e); },
                 Err(e) => error(Box::new(e))
             }
         }
@@ -234,6 +242,37 @@ fn main() {
 
         for &(ref name, ref stat) in stats.iter().take(10) {
             let _ = write!(&mut output, "{}:\n\tLines: {}\n\tWords: {}\n", name, stat.lines, stat.words);
+        }
+    } else if args.cmd_sort {
+        let mut decoder = force_decoder(args.flag_inf);
+        let encoder = force_encoder(args.flag_outf);
+        let mut events: Vec<Event> = decoder.decode_box(&context, &mut input)
+            .flat_map(Result::ok)
+            .collect();
+
+        events.sort_by(|a, b| a.time.cmp(&b.time));
+        for e in events {
+            let _ = encoder.encode(&context, &mut output, &e);
+        }
+    } else if args.cmd_dedup {
+        let mut decoder = force_decoder(args.flag_inf);
+        let encoder = force_encoder(args.flag_outf);
+        let mut backlog = AgeSet::new();
+
+        for e in decoder.decode_box(&context, &mut input) {
+            if let Ok(e) = e {
+                let newest_event = e.clone();
+                backlog.prune(move |a: &NoTimeHash| {
+                    let age = newest_event.time.as_timestamp() - a.0.time.as_timestamp();
+                    age > 5000
+                });
+                // write `e` if it's a new event
+                let n = NoTimeHash(e);
+                if !backlog.contains(&n) {
+                    let _ = encoder.encode(&context, &mut output, &n.0);
+                    backlog.push(n);
+                }
+            }
         }
     }
 }

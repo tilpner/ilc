@@ -21,6 +21,7 @@ bincode = "*"
 combine = "*"
 glob = "*"
 rmp = "*"
+blist = "*"
 
 [profile.release]
 opt-level = 3

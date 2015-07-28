@@ -31,7 +31,7 @@ static TIME_FORMAT: &'static str = "%H:%M:%S";
 pub struct Iter<'a, R: 'a> where R: BufRead {
     context: &'a Context,
     input: R,
-    buffer: String
+    buffer: Vec<u8>
 }
 
 impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
@@ -54,18 +54,20 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
 
         loop {
             self.buffer.clear();
-            match self.input.read_line(&mut self.buffer) {
+            match self.input.read_until(b'\n', &mut self.buffer) {
                 Ok(0) | Err(_) => return None,
                 Ok(_) => ()
             }
 
+            let buffer = String::from_utf8_lossy(&self.buffer);
+
             let mut split_tokens: Vec<char> = Vec::new();
-            let tokens = self.buffer.split( |c: char| {
+            let tokens = buffer.split( |c: char| {
                 if c.is_whitespace() { split_tokens.push(c); true } else { false }
             }).collect::<Vec<_>>();
 
             if log_enabled!(Info) {
-                info!("Original:  `{}`", self.buffer);
+                info!("Original:  `{}`", buffer);
                 info!("Parsing:   {:?}", tokens);
             }
 
@@ -157,7 +159,7 @@ impl<'a, R: 'a> Decode<'a, R> for Energymech where R: BufRead {
         Iter {
             context: context,
             input: input,
-            buffer: String::new()
+            buffer: Vec::new()
         }
     }
 }

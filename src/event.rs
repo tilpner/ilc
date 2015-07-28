@@ -16,9 +16,12 @@
 //! These will be used by all formats for encoding and decoding.
 
 use std::borrow::Cow;
+use std::cmp::Ordering;
+use std::hash::{ Hash, Hasher };
 
 use chrono::naive::time::NaiveTime;
 use chrono::offset::fixed::FixedOffset;
+use chrono::offset::local::Local;
 use chrono::offset::TimeZone;
 
 /// A whole log, in memory. This structure does not specify its
@@ -30,7 +33,7 @@ pub struct Log<'a> {
 /// Different log formats carry different amounts of information. Some might
 /// hold enough information to calculate precise timestamps, others might
 /// only suffice for the time of day.
-#[derive(Clone, Debug, PartialEq, Hash, RustcEncodable, RustcDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, Hash, RustcEncodable, RustcDecodable)]
 pub enum Time {
     Unknown,
     Hms(u8, u8, u8),
@@ -53,9 +56,39 @@ impl Time {
             &Time::Timestamp(t) => format!("{}", tz.timestamp(t, 0).format(f))
         }
     }
+
+    pub fn as_timestamp(&self) -> i64 {
+        use self::Time::*;
+        match self {
+            &Unknown => 0,
+            &Hms(h, m, s) => Local::today()
+                                .and_hms(h as u32, m as u32, s as u32)
+                                .timestamp(),
+            &Timestamp(i) => i
+        }
+    }
+
+    pub fn to_timestamp(&self) -> Time { Time::Timestamp(self.as_timestamp()) }
 }
 
-#[derive(Clone, Debug, PartialEq, Hash, RustcEncodable, RustcDecodable)]
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Time) -> Option<Ordering> {
+        use self::Time::*;
+        match (self, other) {
+            (&Unknown, _) | (_, &Unknown) => None,
+            (&Hms(a_h, a_m, a_s), &Hms(b_h, b_m, b_s)) => {
+                if (a_h >= b_h && a_m >= b_m && a_s > b_s)
+                || (a_h >= b_h && a_m > b_m && a_s >= b_s)
+                || (a_h > b_h && a_m >= b_m && a_s >= b_s)
+                { Some(Ordering::Greater) } else { Some(Ordering::Less) }
+            },
+            (&Timestamp(a), &Timestamp(b)) => Some(a.cmp(&b)),
+            _ => unimplemented!()
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, RustcEncodable, RustcDecodable)]
 pub struct Event<'a> {
     pub ty: Type<'a>,
     pub time: Time,
@@ -64,7 +97,7 @@ pub struct Event<'a> {
 
 /// All representable events, such as messages, quits, joins
 /// and topic changes.
-#[derive(Clone, Debug, Hash, PartialEq, RustcEncodable, RustcDecodable)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, RustcEncodable, RustcDecodable)]
 pub enum Type<'a> {
     Connect,
     Disconnect,
@@ -114,5 +147,15 @@ pub enum Type<'a> {
         nick: Option<Cow<'a, str>>,
         mode: Cow<'a, str>,
         masks: Cow<'a, str>
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, RustcEncodable, RustcDecodable)]
+pub struct NoTimeHash<'a>(pub Event<'a>);
+
+impl<'a> Hash for NoTimeHash<'a> {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        self.0.ty.hash(state);
+        self.0.channel.hash(state);
     }
 }
