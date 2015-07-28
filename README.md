@@ -3,14 +3,11 @@ ilc
 
 **So... what is this thing?**
 
-ilc is *supposed to be* a library to work with common IRC log formats, as well as a collection
+ilc is a library to work with common IRC log formats, as well as a collection
 of commonly needed utilities for IRC logs.
 
-**Supposed to be? What can it do for me now?**
-
-The library can convert between most of the EnergyMech and Weechat3 log formats.
+The library can convert between most of the EnergyMech and Weechat3 log formats, as well as binary and msgpack representations of them.
 The tools can pretty-print them, and count the lines/words that people said in them.
-They're not really configurable yet, so you'd have to recompile it for that... <sup><sup>yesiknowitsucks</sup></sup>
 
 **Are you stupid? Why Rust?**
 
@@ -36,3 +33,22 @@ is known to compile with
 To compile:
 
     cargo build --release
+    
+**Usage**
+```
+Usage:
+  ilc parse [options] [-i FILE...]
+  ilc convert [options] [-i FILE...]
+  ilc freq [options] [-i FILE...]
+  ilc (-h | --help | -v | --version)
+Options:
+  -h --help         Show this screen.
+  -v --version      Show the version (duh).
+  --date DATE       Override the date for this log. ISO 8601, YYYY-MM-DD.
+  --tz SECONDS      UTC offset in the direction of the western hemisphere.
+  --channel CH      Set a channel for the given log.
+  --inf INF         Set the input format.
+  --outf OUTF       Set the output format.
+  --in -i IN        Give an input file, instead of stdin.
+  --out -o OUT      Give an output file, instead of stdout.
+```
