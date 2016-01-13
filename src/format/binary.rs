@@ -32,14 +32,14 @@ pub struct Iter<'a, R: 'a> where R: BufRead {
 impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
-        Some(bincode::decode_from::<R, Event>(&mut self.input, SizeLimit::Infinite)
+        Some(bincode::rustc_serialize::decode_from::<R, Event>(&mut self.input, SizeLimit::Infinite)
              .map_err(|_| ::IlcError::BincodeDecode))
     }
 }
 
 impl<'a, W> Encode<'a, W> for Binary where W: Write {
     fn encode(&'a self, _context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
-        bincode::encode_into(event, &mut output, SizeLimit::Infinite)
+        bincode::rustc_serialize::encode_into(event, &mut output, SizeLimit::Infinite)
             .map_err(|_| ::IlcError::BincodeEncode)
     }
 }

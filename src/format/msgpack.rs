@@ -22,6 +22,7 @@ use format::{ Encode, Decode };
 
 use rustc_serialize::{ Encodable, Decodable };
 use msgpack::{ Encoder, Decoder };
+use rmp::decode::ReadError;
 
 pub struct Msgpack;
 
@@ -36,7 +37,7 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
         use msgpack::decode;
         match Event::decode(&mut Decoder::new(&mut self.input)) {
             Ok(e) => Some(Ok(e)),
-            Err(decode::serialize::Error::InvalidMarkerRead(decode::ReadError::UnexpectedEOF)) => None,
+            Err(decode::Error::InvalidMarkerRead(ReadError::UnexpectedEOF)) => None,
             Err(e) => Some(Err(::IlcError::MsgpackDecode(e)))
         }
     }
