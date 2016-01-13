@@ -16,55 +16,50 @@
 //! As the source format may not provide the same information as the
 //! target format, all formats must allow for omittable information.
 
+use std::iter;
 use std::io::{ BufRead, Write };
 use std::borrow::Cow;
 
 use event::Event;
 use context::Context;
 
-pub mod weechat3;
-pub mod energymech;
-pub mod binary;
-pub mod msgpack;
+//pub mod weechat3;
+//pub mod energymech;
+//pub mod binary;
+//pub mod msgpack;
 
 pub trait Encode<'a, W> where W: Write {
     fn encode(&'a self, context: &'a Context, output: W, event: &'a Event) -> ::Result<()>;
 }
 
-pub trait Decode<'a, Input> where Input: BufRead,
-                                  Self::Output: Iterator<Item = ::Result<Event<'a>>> + 'a {
-    type Output;
-    fn decode(&'a mut self, context: &'a Context, input: Input) -> Self::Output;
+pub trait Decode<'a, 'b, 'c>  {
+    fn decode(&'a mut self, context: &'b Context, input: &'c mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a>;
 }
 
-pub trait DecodeBox<'a, I> {
-    fn decode_box(&'a mut self, context: &'a Context, input: I)
-    -> Box<Iterator<Item = ::Result<Event>> + 'a>;
-}
+pub struct Dummy;
 
-impl<'a, T, I: BufRead> DecodeBox<'a, I> for T where T: Decode<'a, I> {
-    fn decode_box(&'a mut self, context: &'a Context, input: I)
-    -> Box<Iterator<Item = ::Result<Event>> + 'a> {
-        Box::new(self.decode(context, input))
+impl <'a, 'b, 'c> Decode<'a, 'b, 'c> for Dummy {
+    fn decode(&'a mut self, _context: &'b Context, _input: &'c mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+        Box::new(iter::empty())
     }
 }
 
-pub fn decoder<'a>(format: &str) -> Option<Box<DecodeBox<'a, &'a mut BufRead>>> {
+pub fn decoder<'a, 'b, 'c>(format: &str) -> Option<Box<Decode<'a, 'b, 'c>>> {
     match format {
-        "energymech" => Some(Box::new(energymech::Energymech)),
-        "weechat3" => Some(Box::new(weechat3::Weechat3)),
-        "binary" => Some(Box::new(binary::Binary)),
-        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+//        "energymech" => Some(Box::new(energymech::Energymech)),
+//        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+//        "binary" => Some(Box::new(binary::Binary)),
+//        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
 
-pub fn encoder<'a>(format: &str) -> Option<Box<Encode<'a, &'a mut Write>>> {
+pub fn encoder<'a, 'b: 'a>(format: &str) -> Option<Box<Encode<'a, &'b mut Write>>> {
     match format {
-        "energymech" => Some(Box::new(energymech::Energymech)),
-        "weechat3" => Some(Box::new(weechat3::Weechat3)),
-        "binary" => Some(Box::new(binary::Binary)),
-        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+//        "energymech" => Some(Box::new(energymech::Energymech)),
+//        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+//        "binary" => Some(Box::new(binary::Binary)),
+//        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }

@@ -26,13 +26,13 @@ pub struct Weechat3;
 
 static TIME_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
-pub struct Iter<'a, R: 'a> where R: BufRead {
+pub struct Iter<'a> {
     context: &'a Context,
-    input: R,
+    input: &'a mut BufRead,
     buffer: Vec<u8>
 }
 
-impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
+impl<'a> Iterator for Iter<'a> {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
         fn parse_time(c: &Context, date: &str, time: &str) -> Time {
@@ -139,14 +139,13 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, I: 'a> Decode<'a, I> for Weechat3 where I: BufRead {
-    type Output = Iter<'a, I>;
-    fn decode(&'a mut self, context: &'a Context, input: I) -> Iter<'a, I> {
-        Iter {
+impl<'a> Decode<'a> for Weechat3 {
+    fn decode(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+        Box::new(Iter {
             context: context,
             input: input,
             buffer: Vec::new()
-        }
+        })
     }
 }
 

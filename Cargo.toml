@@ -21,6 +21,7 @@ bincode = "*"
 combine = "*"
 glob = "*"
 rmp = "*"
+rmp-serialize = "*"
 blist = "*"
 
 [profile.release]

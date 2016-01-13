@@ -28,13 +28,13 @@ pub struct Energymech;
 
 static TIME_FORMAT: &'static str = "%H:%M:%S";
 
-pub struct Iter<'a, R: 'a> where R: BufRead {
+pub struct Iter<'a> {
     context: &'a Context,
-    input: R,
+    input: &'a mut BufRead,
     buffer: Vec<u8>
 }
 
-impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
+impl<'a> Iterator for Iter<'a> {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
         fn parse_time(context: &Context, time: &str) -> Time {
@@ -153,14 +153,13 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, R: 'a> Decode<'a, R> for Energymech where R: BufRead {
-    type Output = Iter<'a, R>;
-    fn decode(&'a mut self, context: &'a Context, input: R) -> Iter<R> {
-        Iter {
+impl<'a> Decode<'a> for Energymech {
+    fn decode(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+        Box::new(Iter {
             context: context,
             input: input,
             buffer: Vec::new()
-        }
+        })
     }
 }
 

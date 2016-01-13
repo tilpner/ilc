@@ -20,7 +20,8 @@ extern crate chrono;
 extern crate log as l;
 extern crate rustc_serialize;
 extern crate bincode;
-extern crate rmp as msgpack;
+extern crate rmp;
+extern crate rmp_serialize as msgpack;
 
 pub mod event;
 pub mod format;
@@ -41,8 +42,8 @@ pub enum IlcError {
     Chrono(ParseError),
     BincodeDecode,
     BincodeEncode,
-    MsgpackEncode(msgpack::encode::serialize::Error),
-    MsgpackDecode(msgpack::decode::serialize::Error),
+    MsgpackEncode(msgpack::encode::Error),
+    MsgpackDecode(msgpack::decode::Error),
     Io(io::Error)
 }
 

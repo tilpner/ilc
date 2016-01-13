@@ -42,7 +42,7 @@ use chrono::naive::date::NaiveDate;
 use glob::glob;
 
 use ilc::context::Context;
-use ilc::format::{ self, Encode, Decode, DecodeBox };
+use ilc::format::{ self, Encode, Decode };
 use ilc::event::{ Event, Type, NoTimeHash };
 
 use ageset::AgeSet;
@@ -116,7 +116,7 @@ fn die(s: &str) -> ! {
     process::exit(1)
 }
 
-fn force_decoder<'a>(s: Option<String>) -> Box<DecodeBox<'a, &'a mut BufRead>> {
+fn force_decoder<'a, 'b, 'c>(s: Option<String>) -> Box<Decode<'a, 'b, 'c>> {
     let inf = match s {
         Some(s) => s,
         None => die("You didn't specify the input format")
@@ -127,7 +127,7 @@ fn force_decoder<'a>(s: Option<String>) -> Box<DecodeBox<'a, &'a mut BufRead>> {
     }
 }
 
-fn force_encoder<'a>(s: Option<String>) -> Box<Encode<'a, &'a mut Write>> {
+fn force_encoder<'a, 'b: 'a>(s: Option<String>) -> Box<Encode<'a, &'b mut Write>> {
     let outf = match s {
         Some(s) => s,
         None => die("You didn't specify the output format")
@@ -167,23 +167,25 @@ fn main() {
         Box::new(BufReader::new(io::stdin()))
     };
 
-    let mut output: Box<Write> = if let Some(out) = args.flag_out {
+    /*let mut output: Box<Write> = if let Some(out) = args.flag_out {
         match File::create(out) {
             Ok(f) => Box::new(BufWriter::new(f)),
             Err(e) => error(Box::new(e))
         }
     } else {
         Box::new(BufWriter::new(io::stdout()))
-    };
+    };*/
 
-    if args.cmd_parse {
-        let mut decoder = force_decoder(args.flag_inf);
-        let encoder = force_encoder(args.flag_outf);
-        for e in decoder.decode_box(&context, &mut input) {
-            info!("Parsed: {:?}", e);
-            let _ = encoder.encode(&context, &mut output, &e.unwrap());
-        }
-    } else if args.cmd_convert {
+    //if args.cmd_parse {
+        let mut i = io::empty();
+        let mut decoder: Box<Decode> = Box::new(format::Dummy);//force_decoder(args.flag_inf);
+        // let encoder = force_encoder(args.flag_outf);
+        let iter = decoder.decode(&context, &mut i);
+        //for e in decoder.decode_box(&context, &mut input) {
+            //let e = e.unwrap();
+            //let _ = encoder.encode(&context, &mut output, &e);
+        //}
+    /*}*/ /*else if args.cmd_convert {
         let mut decoder = force_decoder(args.flag_inf);
         let encoder = force_encoder(args.flag_outf);
         for e in decoder.decode_box(&context, &mut input) {
@@ -274,5 +276,5 @@ fn main() {
                 }
             }
         }
-    }
+    }*/
 }
