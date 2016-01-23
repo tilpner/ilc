@@ -1,5 +1,6 @@
 ilc
 =========
+[![Build Status](https://travis-ci.org/tilpner/ilc.svg?branch=master)](https://travis-ci.org/tilpner/ilc)
 
 **So... what is this thing?**
 
@@ -33,7 +34,7 @@ is known to compile with
 To compile:
 
     cargo build --release
-    
+
 **Usage**
 ```
 Usage:
