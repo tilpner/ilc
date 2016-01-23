@@ -1,6 +1,8 @@
 ilc
 =========
-[![Build Status](https://travis-ci.org/tilpner/ilc.svg?branch=master)](https://travis-ci.org/tilpner/ilc)
+[![Build Status](https://img.shields.io/travis/tilpner/ilc.svg?style=flat-square)](https://travis-ci.org/tilpner/ilc)
+[![Crates.io version](https://img.shields.io/crates/v/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
+[![Crates.io license](https://img.shields.io/crates/l/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
 
 **So... what is this thing?**
 
