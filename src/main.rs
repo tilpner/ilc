@@ -24,10 +24,12 @@ extern crate blist;
 
 use std::process;
 use std::io::{ self, BufRead, BufReader, Write, BufWriter };
+use std::path::{ Path, PathBuf };
 use std::fs::File;
 use std::error::Error;
 use std::str::FromStr;
 use std::collections::HashMap;
+use std::ffi::OsStr;
 
 use docopt::Docopt;
 
@@ -61,6 +63,7 @@ Usage:
   ilc parse [options] [-i FILE...]
   ilc convert [options] [-i FILE...]
   ilc freq [options] [-i FILE...]
+  ilc seen <nick> [options] [-i FILE...]
   ilc sort [options] [-i FILE...]
   ilc dedup [options] [-i FILE...]
   ilc (-h | --help | -v | --version)
@@ -75,6 +78,7 @@ Options:
   --outf OUTF       Set the output format.
   --in -i IN        Give an input file, instead of stdin.
   --out -o OUT      Give an output file, instead of stdout.
+  --infer-date    Try to use the filename as date for the log.
 "#;
 
 #[derive(RustcDecodable, Debug)]
@@ -82,9 +86,11 @@ struct Args {
     cmd_parse: bool,
     cmd_convert: bool,
     cmd_freq: bool,
+    cmd_seen: bool,
     cmd_sort: bool,
     cmd_dedup: bool,
     arg_file: Vec<String>,
+    arg_nick: String,
     flag_in: Vec<String>,
     flag_out: Option<String>,
     flag_inf: Option<String>,
@@ -93,7 +99,8 @@ struct Args {
     flag_version: bool,
     flag_date: Option<String>,
     flag_tz: Option<String>,
-    flag_channel: Option<String>
+    flag_channel: Option<String>,
+    flag_infer_date: bool
 }
 
 fn error(e: Box<Error>) -> ! {
@@ -143,21 +150,31 @@ fn main() {
         process::exit(1)
     }
 
-    let context = Context {
+    let mut context = Context {
         timezone: FixedOffset::west(args.flag_tz.and_then(|s| s.parse().ok()).unwrap_or(0)),
         override_date: args.flag_date.and_then(|d| NaiveDate::from_str(&d).ok()),
         channel: args.flag_channel.clone()
     };
 
     let mut input: Box<BufRead> = if args.flag_in.len() > 0 {
-        let input_files = args.flag_in.iter()
+        let input_files: Vec<PathBuf> = args.flag_in.iter()
             .flat_map(|p| {
                 match glob(p) {
                     Ok(paths) => paths,
                     Err(e) => die(&format!("{}", e.msg))
                 }
-            }).filter_map(Result::ok).map(|p| File::open(p).unwrap()).collect();
-        Box::new(BufReader::new(chain::Chain::new(input_files)))
+            }).filter_map(Result::ok).collect();//.map(|p| File::open(p).unwrap()).collect();
+        if args.flag_infer_date {
+            if input_files.len() > 1 { die("Too many input files, can't infer date") }
+            if let Some(date) = input_files.iter().next()
+                                .map(PathBuf::as_path)
+                                .and_then(Path::file_stem)
+                                .and_then(OsStr::to_str)
+                                .and_then(|s: &str| NaiveDate::from_str(s).ok()) {
+                context.override_date = Some(date);
+            }
+        }
+        Box::new(BufReader::new(chain::Chain::new(input_files.iter().map(|p| File::open(p).unwrap()).collect())))
     } else {
         Box::new(BufReader::new(io::stdin()))
     };
@@ -178,7 +195,7 @@ fn main() {
             let e = e.unwrap();
             let _ = encoder.encode(&context, &mut output, &e);
         }
-    }else if args.cmd_convert {
+    } else if args.cmd_convert {
         let mut decoder = force_decoder(args.flag_inf);
         let encoder = force_encoder(args.flag_outf);
         for e in decoder.decode(&context, &mut input) {
@@ -252,6 +269,22 @@ fn main() {
             let _ = write!(&mut output,
                            "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: {}\n\tTotal words: {}\n\tWords per line: {}\n",
                            name, stat.lines, stat.lines - stat.alpha_lines, stat.words, stat.words as f32 / stat.lines as f32);
+        }
+    } else if args.cmd_seen {
+        let mut decoder = force_decoder(args.flag_inf);
+        let mut last: Option<Event> = None;
+        for e in decoder.decode(&context, &mut input) {
+            let m = match e {
+                Ok(m) => m,
+                Err(err) => error(Box::new(err))
+            };
+
+            if m.ty.involves(&args.arg_nick)
+            && last.as_ref().map_or(true, |last| m.time.as_timestamp() > last.time.as_timestamp()) { last = Some(m) }
+        }
+        let encoder = format::weechat3::Weechat3;
+        if let Some(ref m) = last {
+            let _ = encoder.encode(&context, &mut output, m);
         }
     } else if args.cmd_sort {
         let mut decoder = force_decoder(args.flag_inf);

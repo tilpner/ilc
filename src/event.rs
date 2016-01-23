@@ -150,6 +150,26 @@ pub enum Type<'a> {
     }
 }
 
+impl<'a> Type<'a> {
+    pub fn involves(&self, needle: &str) -> bool {
+        use self::Type::*;
+        match self {
+            &Msg { ref from, .. } => from == needle,
+            &Action { ref from, .. } => from == needle,
+            &Join { ref nick, .. } => nick == needle,
+            &Part { ref nick, .. } => nick == needle,
+            &Quit { ref nick, .. } => nick == needle,
+            &Nick { ref old_nick, ref new_nick, .. } => old_nick == needle || new_nick == needle,
+            &Notice { ref from, .. } => from == needle,
+            &Kick { ref kicked_nick, ref kicking_nick, .. } => *kicked_nick == Cow::Borrowed(needle)
+                || kicking_nick.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle)),
+            &TopicChange { ref nick, .. } => nick.as_ref().map_or(false, |k| k.as_ref() == needle),
+            &Mode { ref nick, .. } => nick.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle)),
+            _ => false
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, RustcEncodable, RustcDecodable)]
 pub struct NoTimeHash<'a>(pub Event<'a>);
 
