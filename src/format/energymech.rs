@@ -153,8 +153,8 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl<'a> Decode<'a> for Energymech {
-    fn decode(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+impl Decode for Energymech {
+    fn decode<'a>(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
         Box::new(Iter {
             context: context,
             input: input,
@@ -163,8 +163,8 @@ impl<'a> Decode<'a> for Energymech {
     }
 }
 
-impl<'a, W> Encode<'a, W> for Energymech where W: Write {
-    fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
+impl Encode for Energymech {
+    fn encode<'a>(&'a self, context: &'a Context, mut output: &'a mut Write, event: &'a Event) -> ::Result<()> {
         match event {
             &Event { ty: Type::Msg { ref from, ref content }, ref time, .. } => {
                 try!(writeln!(&mut output, "[{}] <{}> {}",

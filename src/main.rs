@@ -12,15 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![feature(libc, plugin)]
-#![plugin(regex_macros)]
-
 extern crate ilc;
 extern crate chrono;
 extern crate docopt;
 extern crate rustc_serialize;
-extern crate libc;
-extern crate regex;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -116,7 +111,7 @@ fn die(s: &str) -> ! {
     process::exit(1)
 }
 
-fn force_decoder<'a, 'b, 'c>(s: Option<String>) -> Box<Decode<'a, 'b, 'c>> {
+fn force_decoder(s: Option<String>) -> Box<Decode> {
     let inf = match s {
         Some(s) => s,
         None => die("You didn't specify the input format")
@@ -127,7 +122,7 @@ fn force_decoder<'a, 'b, 'c>(s: Option<String>) -> Box<Decode<'a, 'b, 'c>> {
     }
 }
 
-fn force_encoder<'a, 'b: 'a>(s: Option<String>) -> Box<Encode<'a, &'b mut Write>> {
+fn force_encoder<'a>(s: Option<String>) -> Box<Encode> {
     let outf = match s {
         Some(s) => s,
         None => die("You didn't specify the output format")
@@ -167,28 +162,26 @@ fn main() {
         Box::new(BufReader::new(io::stdin()))
     };
 
-    /*let mut output: Box<Write> = if let Some(out) = args.flag_out {
+    let mut output: Box<Write> = if let Some(out) = args.flag_out {
         match File::create(out) {
             Ok(f) => Box::new(BufWriter::new(f)),
             Err(e) => error(Box::new(e))
         }
     } else {
         Box::new(BufWriter::new(io::stdout()))
-    };*/
+    };
 
-    //if args.cmd_parse {
-        let mut i = io::empty();
-        let mut decoder: Box<Decode> = Box::new(format::Dummy);//force_decoder(args.flag_inf);
-        // let encoder = force_encoder(args.flag_outf);
-        let iter = decoder.decode(&context, &mut i);
-        //for e in decoder.decode_box(&context, &mut input) {
-            //let e = e.unwrap();
-            //let _ = encoder.encode(&context, &mut output, &e);
-        //}
-    /*}*/ /*else if args.cmd_convert {
+    if args.cmd_parse {
         let mut decoder = force_decoder(args.flag_inf);
         let encoder = force_encoder(args.flag_outf);
-        for e in decoder.decode_box(&context, &mut input) {
+        for e in decoder.decode(&context, &mut input) {
+            let e = e.unwrap();
+            let _ = encoder.encode(&context, &mut output, &e);
+        }
+    }else if args.cmd_convert {
+        let mut decoder = force_decoder(args.flag_inf);
+        let encoder = force_encoder(args.flag_outf);
+        for e in decoder.decode(&context, &mut input) {
             match e {
                 Ok(e) => { let _ = encoder.encode(&context, &mut output, &e); },
                 Err(e) => error(Box::new(e))
@@ -215,7 +208,7 @@ fn main() {
         let mut stats: HashMap<String, Person> = HashMap::new();
 
         let mut decoder = force_decoder(args.flag_inf);
-        for e in decoder.decode_box(&context, &mut input) {
+        for e in decoder.decode(&context, &mut input) {
             let m = match e {
                 Ok(m) => m,
                 Err(err) => error(Box::new(err))
@@ -248,7 +241,7 @@ fn main() {
     } else if args.cmd_sort {
         let mut decoder = force_decoder(args.flag_inf);
         let encoder = force_encoder(args.flag_outf);
-        let mut events: Vec<Event> = decoder.decode_box(&context, &mut input)
+        let mut events: Vec<Event> = decoder.decode(&context, &mut input)
             .flat_map(Result::ok)
             .collect();
 
@@ -261,7 +254,7 @@ fn main() {
         let encoder = force_encoder(args.flag_outf);
         let mut backlog = AgeSet::new();
 
-        for e in decoder.decode_box(&context, &mut input) {
+        for e in decoder.decode(&context, &mut input) {
             if let Ok(e) = e {
                 let newest_event = e.clone();
                 backlog.prune(move |a: &NoTimeHash| {
@@ -276,5 +269,5 @@ fn main() {
                 }
             }
         }
-    }*/
+    }
 }

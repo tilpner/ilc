@@ -139,8 +139,8 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl<'a> Decode<'a> for Weechat3 {
-    fn decode(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+impl Decode for Weechat3 {
+    fn decode<'a>(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
         Box::new(Iter {
             context: context,
             input: input,
@@ -149,8 +149,8 @@ impl<'a> Decode<'a> for Weechat3 {
     }
 }
 
-impl<'a, W> Encode<'a, W> for Weechat3 where W: Write {
-    fn encode(&'a self, context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
+impl Encode for Weechat3 {
+    fn encode<'a>(&'a self, context: &'a Context, mut output: &'a mut Write, event: &'a Event) -> ::Result<()> {
         match event {
             &Event { ty: Type::Msg { ref from, ref content, .. }, ref time, .. } => {
                 try!(writeln!(&mut output, "{}\t{}\t{}",

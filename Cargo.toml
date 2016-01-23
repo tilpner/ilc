@@ -1,7 +1,7 @@
 [package]
 
 name = "ilc"
-version = "0.0.1"
+version = "0.1.0"
 license = "Apache-2.0"
 authors = ["Till Hoeppner <till@hoeppner.ws>"]
 
@@ -10,19 +10,17 @@ name = "ilc"
 doc = false
 
 [dependencies]
-regex = "*"
-regex_macros = "*"
-chrono = "*"
-docopt = "*"
-rustc-serialize = "*"
-log = "*"
-env_logger = "*"
-bincode = "*"
-combine = "*"
-glob = "*"
-rmp = "*"
-rmp-serialize = "*"
-blist = "*"
+regex = "0.1.46"
+chrono = "0.2.18"
+docopt = "0.6.78"
+rustc-serialize = "0.3.16"
+log = "0.3.4"
+env_logger = "0.3.2"
+bincode = "0.4.0"
+glob = "0.2.10"
+rmp = "0.7.3"
+rmp-serialize = "0.7.0"
+blist = "0.0.4"
 
 [profile.release]
 opt-level = 3

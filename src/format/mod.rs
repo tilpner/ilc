@@ -23,41 +23,41 @@ use std::borrow::Cow;
 use event::Event;
 use context::Context;
 
-//pub mod weechat3;
-//pub mod energymech;
+pub mod energymech;
+pub mod weechat3;
 //pub mod binary;
 //pub mod msgpack;
 
-pub trait Encode<'a, W> where W: Write {
-    fn encode(&'a self, context: &'a Context, output: W, event: &'a Event) -> ::Result<()>;
+pub trait Encode {
+    fn encode<'a>(&'a self, context: &'a Context, output: &'a mut Write, event: &'a Event) -> ::Result<()>;
 }
 
-pub trait Decode<'a, 'b, 'c>  {
-    fn decode(&'a mut self, context: &'b Context, input: &'c mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a>;
+pub trait Decode  {
+    fn decode<'a>(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a>;
 }
 
 pub struct Dummy;
 
-impl <'a, 'b, 'c> Decode<'a, 'b, 'c> for Dummy {
-    fn decode(&'a mut self, _context: &'b Context, _input: &'c mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+impl Decode for Dummy {
+    fn decode<'a>(&'a mut self, _context: &'a Context, _input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
         Box::new(iter::empty())
     }
 }
 
-pub fn decoder<'a, 'b, 'c>(format: &str) -> Option<Box<Decode<'a, 'b, 'c>>> {
+pub fn decoder(format: &str) -> Option<Box<Decode>> {
     match format {
-//        "energymech" => Some(Box::new(energymech::Energymech)),
-//        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+        "energymech" => Some(Box::new(energymech::Energymech)),
+        "weechat3" => Some(Box::new(weechat3::Weechat3)),
 //        "binary" => Some(Box::new(binary::Binary)),
 //        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
 
-pub fn encoder<'a, 'b: 'a>(format: &str) -> Option<Box<Encode<'a, &'b mut Write>>> {
+pub fn encoder(format: &str) -> Option<Box<Encode>> {
     match format {
-//        "energymech" => Some(Box::new(energymech::Energymech)),
-//        "weechat3" => Some(Box::new(weechat3::Weechat3)),
+        "energymech" => Some(Box::new(energymech::Energymech)),
+        "weechat3" => Some(Box::new(weechat3::Weechat3)),
 //        "binary" => Some(Box::new(binary::Binary)),
 //        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
@@ -65,7 +65,7 @@ pub fn encoder<'a, 'b: 'a>(format: &str) -> Option<Box<Encode<'a, &'b mut Write>
 }
 
 fn rejoin(s: &[&str], splits: &[char]) -> Cow<'static, str> {
-    let len = s.iter().map(|s| s.len()).sum();
+    let len = s.iter().map(|s| s.len()).fold(0, |a, b| a + b);
     let mut out = s.iter().zip(splits.iter()).fold(String::with_capacity(len),
         |mut s, (b, &split)| { s.push_str(b); s.push(split); s });
     out.pop(); Cow::Owned(out)
