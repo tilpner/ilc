@@ -23,7 +23,7 @@ extern crate glob;
 extern crate blist;
 
 use std::process;
-use std::io::{ self, Read, BufRead, BufReader, Write, BufWriter };
+use std::io::{ self, BufRead, BufReader, Write, BufWriter };
 use std::fs::File;
 use std::error::Error;
 use std::str::FromStr;
@@ -190,11 +190,20 @@ fn main() {
     } else if args.cmd_freq {
         struct Person {
             lines: u32,
+            alpha_lines: u32,
             words: u32
         }
 
-        fn words(s: &str) -> u32 {
-            s.split_whitespace().filter(|s| !s.is_empty()).count() as u32
+        fn words_alpha(s: &str) -> (u32, bool) {
+            let mut alpha = false;
+            let mut words = 0;
+            for w in s.split_whitespace() {
+                if !w.is_empty() {
+                    words += 1;
+                    if w.chars().any(char::is_alphabetic) { alpha = true }
+                }
+            }
+            (words, alpha)
         }
 
         fn strip_nick_prefix(s: &str) -> &str {
@@ -219,12 +228,16 @@ fn main() {
                     let nick = strip_nick_prefix(from);
                     if stats.contains_key(nick) {
                         let p: &mut Person = stats.get_mut(nick).unwrap();
+                        let (words, alpha) = words_alpha(content);
                         p.lines += 1;
-                        p.words += words(content);
+                        if alpha { p.alpha_lines += 1 }
+                        p.words += words;
                     } else {
+                        let (words, alpha) = words_alpha(content);
                         stats.insert(nick.to_owned(), Person {
                             lines: 1,
-                            words: words(content)
+                            alpha_lines: if alpha { 1 } else { 0 },
+                            words: words
                         });
                     }
                 },
@@ -235,8 +248,10 @@ fn main() {
         let mut stats: Vec<(String, Person)> = stats.into_iter().collect();
         stats.sort_by(|&(_, ref a), &(_, ref b)| b.words.cmp(&a.words));
 
-        for &(ref name, ref stat) in stats.iter().take(10) {
-            let _ = write!(&mut output, "{}:\n\tLines: {}\n\tWords: {}\n", name, stat.lines, stat.words);
+        for &(ref name, ref stat) in stats.iter() {
+            let _ = write!(&mut output,
+                           "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: {}\n\tTotal words: {}\n\tWords per line: {}\n",
+                           name, stat.lines, stat.lines - stat.alpha_lines, stat.words, stat.words as f32 / stat.lines as f32);
         }
     } else if args.cmd_sort {
         let mut decoder = force_decoder(args.flag_inf);

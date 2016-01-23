@@ -14,7 +14,6 @@
 
 use std::io::{ BufRead, Write };
 use std::iter::Iterator;
-use std::marker::PhantomData;
 
 use event::Event;
 use context::Context;
@@ -26,12 +25,11 @@ use rmp::decode::ReadError;
 
 pub struct Msgpack;
 
-pub struct Iter<'a, R: 'a> where R: BufRead {
-    _phantom: PhantomData<&'a ()>,
-    input: R
+pub struct Iter<'a> {
+    input: &'a mut BufRead
 }
 
-impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
+impl<'a> Iterator for Iter<'a> {
     type Item = ::Result<Event<'a>>;
     fn next(&mut self) -> Option<::Result<Event<'a>>> {
         use msgpack::decode;
@@ -43,16 +41,16 @@ impl<'a, R: 'a> Iterator for Iter<'a, R> where R: BufRead {
     }
 }
 
-impl<'a, W> Encode<'a, W> for Msgpack where W: Write {
-    fn encode(&'a self, _context: &'a Context, mut output: W, event: &'a Event) -> ::Result<()> {
-        event.encode(&mut Encoder::new(&mut output))
+impl Encode for Msgpack {
+    fn encode<'a>(&'a self, _context: &'a Context, output: &'a mut Write, event: &'a Event) -> ::Result<()> {
+        event.encode(&mut Encoder::new(output))
             .map_err(|e| ::IlcError::MsgpackEncode(e))
     }
 }
 
-impl<'a, R: 'a> Decode<'a, R> for Msgpack where R: BufRead {
-    type Output = Iter<'a, R>;
-    fn decode(&'a mut self, _context: &'a Context, input: R) -> Iter<R> {
-        Iter { _phantom: PhantomData, input: input }
+impl Decode for Msgpack {
+    fn decode<'a>(&'a mut self, _context: &'a Context, input: &'a mut BufRead)
+        -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+        Box::new(Iter { input: input })
     }
 }

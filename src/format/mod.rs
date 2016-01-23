@@ -25,8 +25,8 @@ use context::Context;
 
 pub mod energymech;
 pub mod weechat3;
-//pub mod binary;
-//pub mod msgpack;
+pub mod binary;
+pub mod msgpack;
 
 pub trait Encode {
     fn encode<'a>(&'a self, context: &'a Context, output: &'a mut Write, event: &'a Event) -> ::Result<()>;
@@ -48,8 +48,8 @@ pub fn decoder(format: &str) -> Option<Box<Decode>> {
     match format {
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),
-//        "binary" => Some(Box::new(binary::Binary)),
-//        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+        "binary" => Some(Box::new(binary::Binary)),
+        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
@@ -58,8 +58,8 @@ pub fn encoder(format: &str) -> Option<Box<Encode>> {
     match format {
         "energymech" => Some(Box::new(energymech::Energymech)),
         "weechat3" => Some(Box::new(weechat3::Weechat3)),
-//        "binary" => Some(Box::new(binary::Binary)),
-//        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+        "binary" => Some(Box::new(binary::Binary)),
+        "msgpack" => Some(Box::new(msgpack::Msgpack)),
         _ => None
     }
 }
