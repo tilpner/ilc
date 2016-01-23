@@ -17,21 +17,18 @@ The tools can pretty-print them, and count the lines/words that people said in t
 Uhh, actually... that may have been a suboptimal choice. Nobody cares about performance here
 anyways. But it was what I started with, and I didn't feel like rewriting it.
 
-**Fine, I'll use it. What, no binaries?**
+**Fine, I'll use it. Do I really have to compile it?**
 
-Mhm, I haven't yet figured out what legal stuff to include in eventual packages, and
-nobody would use them anyways...
+Probably. I sporadically [release a binary](https://github.com/tilpner/ilc/releases), but those are for x86-64 Linux. If you want something else, or more recent, you'll have to compile yourself.
 
-**Ugh, how do I compile it then?**
+**Okay, how do I compile it then?**
 
-Because I'm using experimental features, you have to use a Rust nightly installation.
+Because I'm using experimental features (slice_patterns), you have to use a Rust nightly installation.
 
-    cb6a4e2d24616c680a3793b0f92ec0f2f6df00db
+`67ee599c56ba9e58cfe190036b7dcc656b20bfdd` is known to compile with
 
-is known to compile with
-
-    rustc 1.2.0-nightly (fbb13543f 2015-06-11)
-    cargo 0.3.0-nightly (2ac8a86 2015-06-10) (built 2015-06-10)
+    rustc 1.8.0-nightly (d63b8e539 2016-01-23)
+    cargo 0.8.0-nightly (8edc460 2016-01-21)
 
 To compile:
 
@@ -43,7 +40,11 @@ Usage:
   ilc parse [options] [-i FILE...]
   ilc convert [options] [-i FILE...]
   ilc freq [options] [-i FILE...]
+  ilc seen <nick> [options] [-i FILE...]
+  ilc sort [options] [-i FILE...]
+  ilc dedup [options] [-i FILE...]
   ilc (-h | --help | -v | --version)
+
 Options:
   -h --help         Show this screen.
   -v --version      Show the version (duh).
@@ -54,4 +55,5 @@ Options:
   --outf OUTF       Set the output format.
   --in -i IN        Give an input file, instead of stdin.
   --out -o OUT      Give an output file, instead of stdout.
+  --infer-date    Try to use the filename as date for the log.
 ```
