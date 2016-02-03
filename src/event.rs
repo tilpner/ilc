@@ -95,6 +95,11 @@ pub struct Event<'a> {
     pub channel: Option<Cow<'a, str>>
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, RustcEncodable, RustcDecodable)]
+pub struct User<'a> {
+    nick: Cow<'a, str>
+}
+
 /// All representable events, such as messages, quits, joins
 /// and topic changes.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, RustcEncodable, RustcDecodable)]
