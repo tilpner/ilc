@@ -69,9 +69,10 @@ pub  fn freq(args: &ArgMatches) {
     let mut stats: Vec<(String, Person)> = stats.into_iter().collect();
     stats.sort_by(|&(_, ref a), &(_, ref b)| b.words.cmp(&a.words));
 
-    for &(ref name, ref stat) in stats.iter() {
+    let count = value_t!(args, "count", usize).unwrap_or(stats.len());
+    for &(ref name, ref stat) in stats.iter().take(count) {
         let _ = write!(&mut output,
-                       "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: {}\n\tTotal words: {}\n\tWords per line: {}\n",
-                       name, stat.lines, stat.lines - stat.alpha_lines, stat.words, stat.words as f32 / stat.lines as f32);
+               "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: {}\n\tTotal words: {}\n\tWords per line: {}\n",
+                   name, stat.lines, stat.lines - stat.alpha_lines, stat.words, stat.words as f32 / stat.lines as f32);
     }
 }
