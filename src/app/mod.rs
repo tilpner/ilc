@@ -7,10 +7,11 @@ use glob::glob;
 
 use std::process;
 use std::str::FromStr;
-use std::path::PathBuf;
+use std::path::{ Path, PathBuf };
 use std::io::{ self, Write, BufWriter, BufRead, BufReader };
 use std::fs::File;
 use std::error::Error;
+use std::ffi::OsStr;
 
 use ilc::context::Context;
 use ilc::format::{ self, Encode, Decode };
@@ -57,43 +58,48 @@ pub fn force_encoder<'a>(s: Option<&str>) -> Box<Encode> {
 }
 
 pub fn build_context(args: &ArgMatches) -> Context {
-    Context {
+    let mut context = Context {
         timezone: FixedOffset::west(args.value_of("timezone").and_then(|s| s.parse().ok()).unwrap_or(0)),
         override_date: args.value_of("date").and_then(|d| NaiveDate::from_str(&d).ok()),
         channel: args.value_of("channel").map(str::to_owned).clone()
-    }
-}
-
-pub fn build_input(args: &ArgMatches) -> Box<BufRead> {
-    let input_files = args.values_of("input_files");
-    if input_files.map(|files| files.count() > 0).unwrap_or(false) {
-        let input_files: Vec<PathBuf> = if let Some(iter) = args.values_of("input_files") {
-            iter.flat_map(|p| {
-                match glob(p) {
-                    Ok(paths) => paths,
-                    Err(e) => die(&format!("{}", e.msg))
-                }
-            }).filter_map(Result::ok).collect()
-        } else { Vec::new() };
-
-        /*if args.flag_infer_date {
-            if input_files.len() > 1 { die("Too many input files, can't infer date") }
-            if let Some(date) = input_files.iter().next()
+    };
+    if args.is_present("infer_date") {
+        let input_files = gather_input(args);
+        match input_files.len() {
+            0 => die("No input files given, can't infer date"),
+            1 => if let Some(date) = input_files.get(0)
                 .map(PathBuf::as_path)
                 .and_then(Path::file_stem)
                 .and_then(OsStr::to_str)
                 .and_then(|s: &str| NaiveDate::from_str(s).ok()) {
                 context.override_date = Some(date);
-            }
-        }*/
+            },
+            _n => die("Too many input files, can't infer date")
+        }
+    }
+    context
+}
 
-        Box::new(BufReader::new(chain::Chain::new(input_files.iter().map(|p| File::open(p).unwrap()).collect())))
+pub fn gather_input(args: &ArgMatches) -> Vec<PathBuf> {
+    if let Some(iter) = args.values_of("input_files") {
+        iter.flat_map(|p| {
+            match glob(p) {
+                Ok(paths) => paths,
+                Err(e) => die(&format!("{}", e.msg))
+            }
+        }).filter_map(Result::ok).collect()
+    } else { Vec::new() }
+}
+
+pub fn open_files(files: Vec<PathBuf>) -> Box<BufRead> {
+    if files.len() > 0 {
+        Box::new(BufReader::new(chain::Chain::new(files.iter().map(|p| File::open(p).unwrap()).collect())))
     } else {
         Box::new(BufReader::new(io::stdin()))
     }
 }
 
-pub fn build_output(args: &ArgMatches) -> Box<Write> {
+pub fn open_output(args: &ArgMatches) -> Box<Write> {
     if let Some(out) = args.value_of("output_file") {
         match File::create(out) {
             Ok(f) => Box::new(BufWriter::new(f)),
@@ -108,8 +114,8 @@ pub struct Environment<'a>(pub &'a ArgMatches<'a>);
 
 impl<'a> Environment<'a> {
     pub fn context(&self) -> Context { build_context(self.0) }
-    pub fn input(&self) -> Box<BufRead> { build_input(self.0) }
-    pub fn output(&self) -> Box<Write> { build_output(self.0) }
+    pub fn input(&self) -> Box<BufRead> { open_files(gather_input(self.0)) }
+    pub fn output(&self) -> Box<Write> { open_output(self.0) }
     pub fn decoder(&self) -> Box<Decode> { force_decoder(self.0.value_of("input_format")) }
     pub fn encoder(&self) -> Box<Encode> { force_encoder(self.0.value_of("output_format")) }
 }

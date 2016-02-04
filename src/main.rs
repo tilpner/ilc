@@ -50,6 +50,10 @@ fn main() {
              .takes_value(true)
              .long("date")
              .short("d"))
+        .arg(Arg::with_name("infer_date")
+             .help("Try to use the filename as date for the current log")
+             .global(true)
+             .long("infer-date"))
         .arg(Arg::with_name("channel")
              .help("Set a channel for the current log")
              .global(true)
@@ -107,6 +111,7 @@ fn main() {
         ("seen", Some(args)) => app::seen::seen(args),
         ("sort", Some(args)) => app::sort::sort(args),
         ("dedup", Some(args)) => app::dedup::dedup(args),
-        _ => panic!("Unimplemented subcommand, this is a bug")
+        (sc, _) if !sc.is_empty() => panic!("Unimplemented subcommand `{}`, this is a bug", sc),
+        _ => ()
     }
 }
