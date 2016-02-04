@@ -173,7 +173,7 @@ pub mod seen {
             if m.ty.involves(nick)
             && last.as_ref().map_or(true, |last| m.time.as_timestamp() > last.time.as_timestamp()) { last = Some(m) }
         }
-        let encoder = format::weechat3::Weechat3;
+        let encoder = format::Weechat;
         if let Some(ref m) = last {
             let _ = encoder.encode(&context, &mut output, m);
         }
@@ -227,6 +227,5 @@ pub mod dedup {
                 }
             }
         }
-
     }
 }

@@ -23,11 +23,16 @@ use std::borrow::Cow;
 use event::Event;
 use context::Context;
 
-pub mod energymech;
-pub mod weechat3;
+pub use self::energymech::Energymech;
+pub use self::weechat::Weechat;
+pub use self::binary::Binary;
+pub use self::msgpack::Msgpack;
+
+mod energymech;
+mod weechat;
 // pub mod irssi;
-pub mod binary;
-pub mod msgpack;
+mod binary;
+mod msgpack;
 
 pub trait Encode {
     fn encode<'a>(&'a self, context: &'a Context, output: &'a mut Write, event: &'a Event) -> ::Result<()>;
@@ -47,22 +52,22 @@ impl Decode for Dummy {
 
 pub fn decoder(format: &str) -> Option<Box<Decode>> {
     match format {
-        "energymech" | "em" => Some(Box::new(energymech::Energymech)),
-        "weechat3" | "weechat" | "w3" => Some(Box::new(weechat3::Weechat3)),
+        "energymech" | "em" => Some(Box::new(Energymech)),
+        "weechat" | "w" => Some(Box::new(Weechat)),
 //         "irssi" => Some(Box::new(irssi::Irssi)),
-        "binary" => Some(Box::new(binary::Binary)),
-        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+        "binary" => Some(Box::new(Binary)),
+        "msgpack" => Some(Box::new(Msgpack)),
         _ => None
     }
 }
 
 pub fn encoder(format: &str) -> Option<Box<Encode>> {
     match format {
-        "energymech" | "em" => Some(Box::new(energymech::Energymech)),
-        "weechat3" | "weechat" | "w3" => Some(Box::new(weechat3::Weechat3)),
+        "energymech" | "em" => Some(Box::new(Energymech)),
+        "weechat" | "w" => Some(Box::new(Weechat)),
 //         "irssi" => Some(Box::new(irssi::Irssi)),
-        "binary" => Some(Box::new(binary::Binary)),
-        "msgpack" => Some(Box::new(msgpack::Msgpack)),
+        "binary" => Some(Box::new(Binary)),
+        "msgpack" => Some(Box::new(Msgpack)),
         _ => None
     }
 }

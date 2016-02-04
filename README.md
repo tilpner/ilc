@@ -9,7 +9,7 @@ ilc
 ilc is a library to work with common IRC log formats, as well as a collection
 of commonly needed utilities for IRC logs.
 
-The library can convert between most of the EnergyMech (ZNC) and Weechat3 log formats, as well as binary and msgpack representations of them.
+The library can convert between most of the EnergyMech (ZNC) and Weechat log formats, as well as binary and msgpack representations of them.
 The tools can merge, convert, and pretty-print them, or count the lines/words that people said in them.
 
 #### Fine, I'll try it. Do I really have to compile it myself?

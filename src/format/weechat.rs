@@ -22,7 +22,7 @@ use format::{ Encode, Decode, rejoin, strip_one };
 
 use l::LogLevel::Info;
 
-pub struct Weechat3;
+pub struct Weechat;
 
 static TIME_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 
@@ -139,7 +139,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl Decode for Weechat3 {
+impl Decode for Weechat {
     fn decode<'a>(&'a mut self, context: &'a Context, input: &'a mut BufRead) -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
         Box::new(Iter {
             context: context,
@@ -149,7 +149,7 @@ impl Decode for Weechat3 {
     }
 }
 
-impl Encode for Weechat3 {
+impl Encode for Weechat {
     fn encode<'a>(&'a self, context: &'a Context, mut output: &'a mut Write, event: &'a Event) -> ::Result<()> {
         match event {
             &Event { ty: Type::Msg { ref from, ref content, .. }, ref time, .. } => {
