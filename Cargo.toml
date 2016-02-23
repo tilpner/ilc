@@ -12,6 +12,7 @@ doc = false
 name = "ilc"
 
 [dependencies]
+tendril = "0.2.1"
 bincode = "0.4.0"
 blist = "0.0.4"
 chrono = "0.2.18"

@@ -2,14 +2,14 @@ use clap::ArgMatches;
 
 use std::collections::HashMap;
 
-use ilc::event::{ Event, Type };
+use ilc::event::{Event, Type};
 
 use super::*;
 
 struct Person {
     lines: u32,
     alpha_lines: u32,
-    words: u32
+    words: u32,
 }
 
 fn words_alpha(s: &str) -> (u32, bool) {
@@ -18,30 +18,37 @@ fn words_alpha(s: &str) -> (u32, bool) {
     for w in s.split_whitespace() {
         if !w.is_empty() {
             words += 1;
-            if w.chars().any(char::is_alphabetic) { alpha = true }
+            if w.chars().any(char::is_alphabetic) {
+                alpha = true
+            }
         }
     }
     (words, alpha)
 }
 
 fn strip_nick_prefix(s: &str) -> &str {
-    if s.is_empty() { return s }
+    if s.is_empty() {
+        return s;
+    }
     match s.as_bytes()[0] {
         b'~' | b'&' | b'@' | b'%' | b'+' => &s[1..],
-        _ => s
+        _ => s,
     }
 }
 
-pub  fn freq(args: &ArgMatches) {
+pub fn freq(args: &ArgMatches) {
     let env = Environment(args);
-    let (context, mut decoder, mut input, mut output) = (env.context(), env.decoder(), env.input(), env.output());
+    let (context, mut decoder, mut input, mut output) = (env.context(),
+                                                         env.decoder(),
+                                                         env.input(),
+                                                         env.output());
 
     let mut stats: HashMap<String, Person> = HashMap::new();
 
     for e in decoder.decode(&context, &mut input) {
         let m = match e {
             Ok(m) => m,
-            Err(err) => error(Box::new(err))
+            Err(err) => error(Box::new(err)),
         };
 
         match m {
@@ -51,18 +58,21 @@ pub  fn freq(args: &ArgMatches) {
                     let p: &mut Person = stats.get_mut(nick).unwrap();
                     let (words, alpha) = words_alpha(content);
                     p.lines += 1;
-                    if alpha { p.alpha_lines += 1 }
+                    if alpha {
+                        p.alpha_lines += 1
+                    }
                     p.words += words;
                 } else {
                     let (words, alpha) = words_alpha(content);
-                    stats.insert(nick.to_owned(), Person {
-                        lines: 1,
-                        alpha_lines: if alpha { 1 } else { 0 },
-                        words: words
-                    });
+                    stats.insert(nick.to_owned(),
+                                 Person {
+                                     lines: 1,
+                                     alpha_lines: if alpha { 1 } else { 0 },
+                                     words: words,
+                                 });
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
@@ -72,7 +82,12 @@ pub  fn freq(args: &ArgMatches) {
     let count = value_t!(args, "count", usize).unwrap_or(stats.len());
     for &(ref name, ref stat) in stats.iter().take(count) {
         let _ = write!(&mut output,
-               "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: {}\n\tTotal words: {}\n\tWords per line: {}\n",
-                   name, stat.lines, stat.lines - stat.alpha_lines, stat.words, stat.words as f32 / stat.lines as f32);
+                       "{}:\n\tTotal lines: {}\n\tLines without alphabetic characters: \
+                        {}\n\tTotal words: {}\n\tWords per line: {}\n",
+                       name,
+                       stat.lines,
+                       stat.lines - stat.alpha_lines,
+                       stat.words,
+                       stat.words as f32 / stat.lines as f32);
     }
 }
