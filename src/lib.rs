@@ -15,7 +15,7 @@
 #![feature(slice_patterns)]
 extern crate chrono;
 #[macro_use]
-extern crate log as l;
+extern crate log;
 extern crate rustc_serialize;
 extern crate bincode;
 extern crate rmp;
@@ -26,9 +26,9 @@ pub mod format;
 pub mod context;
 
 use std::convert::From;
-use std::{ io, result };
+use std::{io, result};
 use std::error::Error;
-use std::fmt::{ self, Display, Formatter };
+use std::fmt::{self, Display, Formatter};
 
 use chrono::format::ParseError;
 
@@ -42,7 +42,7 @@ pub enum IlcError {
     BincodeEncode,
     MsgpackEncode(msgpack::encode::Error),
     MsgpackDecode(msgpack::decode::Error),
-    Io(io::Error)
+    Io(io::Error),
 }
 
 impl Display for IlcError {
@@ -61,7 +61,7 @@ impl Error for IlcError {
             &BincodeEncode => "error while encoding to binary",
             &MsgpackDecode(_) => "error while decoding from msgpack",
             &MsgpackEncode(_) => "error while encoding to msgpack",
-            &Io(_) => "error during input/output"
+            &Io(_) => "error during input/output",
         }
     }
 
@@ -74,15 +74,19 @@ impl Error for IlcError {
             &BincodeEncode => None,
             &MsgpackDecode(ref e) => Some(e),
             &MsgpackEncode(ref e) => Some(e),
-            &Io(ref e) => Some(e)
+            &Io(ref e) => Some(e),
         }
     }
 }
 
 impl From<ParseError> for IlcError {
-    fn from(err: ParseError) -> IlcError { IlcError::Chrono(err) }
+    fn from(err: ParseError) -> IlcError {
+        IlcError::Chrono(err)
+    }
 }
 
 impl From<io::Error> for IlcError {
-    fn from(err: io::Error) -> IlcError { IlcError::Io(err) }
+    fn from(err: io::Error) -> IlcError {
+        IlcError::Io(err)
+    }
 }

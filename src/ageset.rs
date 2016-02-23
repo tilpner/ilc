@@ -9,14 +9,16 @@ use blist::BList;
 /// if the criteria is met.
 pub struct AgeSet<T> {
     fifo: BList<T>,
-    set: HashSet<T>
+    set: HashSet<T>,
 }
 
-impl<T> AgeSet<T> where T: Eq + Hash + Clone {
+impl<T> AgeSet<T>
+    where T: Eq + Hash + Clone
+{
     pub fn new() -> Self {
         AgeSet {
             fifo: BList::new(),
-            set: HashSet::new()
+            set: HashSet::new(),
         }
     }
 
@@ -24,13 +26,17 @@ impl<T> AgeSet<T> where T: Eq + Hash + Clone {
         self.set.contains(t)
     }
 
-    pub fn prune<F>(&mut self, kill: F) where F: Fn(&T) -> bool {
+    pub fn prune<F>(&mut self, kill: F)
+        where F: Fn(&T) -> bool
+    {
         while let Some(ref e) = self.fifo.front().map(T::clone) {
             if kill(&e) {
                 let removed = self.fifo.pop_front().unwrap();
                 self.set.remove(&e);
                 assert!(*e == removed);
-            } else { break }
+            } else {
+                break;
+            }
         }
     }
 

@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::{ BufRead, Write };
+use std::io::{BufRead, Write};
 use std::iter::Iterator;
 
 use event::Event;
 use context::Context;
-use format::{ Encode, Decode };
+use format::{Decode, Encode};
 
-use rustc_serialize::{ Encodable, Decodable };
-use msgpack::{ Encoder, Decoder };
+use rustc_serialize::{Decodable, Encodable};
+use msgpack::{Decoder, Encoder};
 use rmp::decode::ReadError;
 
 pub struct Msgpack;
 
 pub struct Iter<'a> {
-    input: &'a mut BufRead
+    input: &'a mut BufRead,
 }
 
 impl<'a> Iterator for Iter<'a> {
@@ -36,21 +36,27 @@ impl<'a> Iterator for Iter<'a> {
         match Event::decode(&mut Decoder::new(&mut self.input)) {
             Ok(e) => Some(Ok(e)),
             Err(decode::Error::InvalidMarkerRead(ReadError::UnexpectedEOF)) => None,
-            Err(e) => Some(Err(::IlcError::MsgpackDecode(e)))
+            Err(e) => Some(Err(::IlcError::MsgpackDecode(e))),
         }
     }
 }
 
 impl Encode for Msgpack {
-    fn encode<'a>(&'a self, _context: &'a Context, output: &'a mut Write, event: &'a Event) -> ::Result<()> {
+    fn encode<'a>(&'a self,
+                  _context: &'a Context,
+                  output: &'a mut Write,
+                  event: &'a Event)
+                  -> ::Result<()> {
         event.encode(&mut Encoder::new(output))
-            .map_err(|e| ::IlcError::MsgpackEncode(e))
+             .map_err(|e| ::IlcError::MsgpackEncode(e))
     }
 }
 
 impl Decode for Msgpack {
-    fn decode<'a>(&'a mut self, _context: &'a Context, input: &'a mut BufRead)
-        -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
+    fn decode<'a>(&'a mut self,
+                  _context: &'a Context,
+                  input: &'a mut BufRead)
+                  -> Box<Iterator<Item = ::Result<Event<'a>>> + 'a> {
         Box::new(Iter { input: input })
     }
 }
