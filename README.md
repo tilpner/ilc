@@ -13,15 +13,15 @@ of commonly needed utilities for IRC logs.
 The library can convert between most of the EnergyMech (ZNC) and Weechat log formats, as well as binary and msgpack representations of them.
 The tools can merge, convert, and pretty-print them, or count the lines/words that people said in them.
 
-### Downloads
+#### Downloads
 
-There are other builds, including for/with musl, mingw, or ARM. Please [check out the latest release](https://github.com/tilpner/ilc/releases/latest)
+There are other builds, including for/with musl, mingw, or ARM. Please [check out the latest release](https://github.com/tilpner/ilc/releases/latest) to see all archives.
 
 | Platform | 64 bit | 32 bit |
 | -------- | ------ | ------ |
-| Linux    | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-unknown-linux-gnu.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-unknown-linux-gnu.tar.gz) |
-| OSX      | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-apple-darwin.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-apple-darwin.tar.gz) |
-| Windows  | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-pc-windows-msvc.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-pc-windows-msvc.tar.gz) |
+| Linux    | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-unknown-linux-gnu.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-unknown-linux-gnu.tar.gz) |
+| OS X     | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-apple-darwin.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-apple-darwin.tar.gz) |
+| Windows  | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-pc-windows-msvc.zip) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-pc-windows-msvc.zip) |
 
 *Note that these links might be broken in the one hour it takes between release and uploading builds, sorry for that.*
 
