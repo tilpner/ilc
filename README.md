@@ -1,6 +1,7 @@
 ilc
 =========
-[![Build Status](https://img.shields.io/travis/tilpner/ilc.svg?style=flat-square)](https://travis-ci.org/tilpner/ilc)
+[![Travis](https://img.shields.io/travis/tilpner/ilc.svg?style=flat-square)](https://travis-ci.org/tilpner/ilc)
+[![Appveyor](https://img.shields.io/appveyor/ci/tilpner/ilc.svg?style=flat-square)](https://ci.appveyor.com/project/tilpner/ilc)
 [![Crates.io version](https://img.shields.io/crates/v/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
 [![Crates.io license](https://img.shields.io/crates/l/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
 
@@ -12,11 +13,19 @@ of commonly needed utilities for IRC logs.
 The library can convert between most of the EnergyMech (ZNC) and Weechat log formats, as well as binary and msgpack representations of them.
 The tools can merge, convert, and pretty-print them, or count the lines/words that people said in them.
 
-#### Fine, I'll try it. Do I really have to compile it myself?
+### Downloads
 
-Probably. I sporadically [release a binary](https://github.com/tilpner/ilc/releases), but those are for x86_64 Linux. If you want something else, or more recent, you'll have to compile yourself.
+There are other builds, including for/with musl, mingw, or ARM. Please [check out the latest release](https://github.com/tilpner/ilc/releases/latest)
 
-#### Okay, how do I compile it then?
+| Platform | 64 bit | 32 bit |
+| -------- | ------ | ------ |
+| Linux    | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-unknown-linux-gnu.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-unknown-linux-gnu.tar.gz) |
+| OSX      | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-apple-darwin.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-apple-darwin.tar.gz) |
+| Windows  | [Download](https://github.com/tilpner/ilc/releases/latest/ilc-x86_64-pc-windows-msvc.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/latest/ilc-i686-pc-windows-msvc.tar.gz) |
+
+*Note that these links might be broken in the one hour it takes between release and uploading builds, sorry for that.*
+
+#### How can I compile this myself?
 
 Because I'm using experimental features (slice_patterns), you have to use a Rust nightly installation either way.
 
@@ -28,7 +37,7 @@ Because I'm using experimental features (slice_patterns), you have to use a Rust
 
 `67ee599c56ba9e58cfe190036b7dcc656b20bfdd` is known to compile with
 
-> rustc 1.8.0-nightly (d63b8e539 2016-01-23)  
+> rustc 1.8.0-nightly (d63b8e539 2016-01-23)
 > cargo 0.8.0-nightly (8edc460 2016-01-21)
 
 To compile:

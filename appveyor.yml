@@ -37,12 +37,12 @@ after_test:
   - copy target\release\ilc.exe staging
   - cd staging
     # release zipfile will look like 'rust-everywhere-v1.2.3-x86_64-pc-windows-msvc'
-  - 7z a ../%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip *
+  - 7z a ../%PROJECT_NAME%-%TARGET%.zip *
 
 # IMPORTANT All the artifacts need to be listed here, or they won't be uploaded to GitHub
 artifacts:
-  - path: $(PROJECT_NAME)-$(APPVEYOR_REPO_TAG_NAME)-$(TARGET).zip
-    name: $(PROJECT_NAME)-$(APPVEYOR_REPO_TAG_NAME)-$(TARGET).zip
+  - path: $(PROJECT_NAME)-$(TARGET).zip
+    name: $(PROJECT_NAME)-$(TARGET).zip
     type: zip
 
 deploy:

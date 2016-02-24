@@ -74,7 +74,7 @@ deploy:
   # - Enter the "encrypted value" below
   api_key:
     secure: BnQxKEtnxUL6K8T8WHsmC09KgTZho22z5MBlVEcX+glHMLkzehCs+LaiXQ0lsvs8Z7ngxEs+FG4qfCXtMeFJh3n4tzTYAe9xvNFhieRZKUKkkycNTTraRL1Pzpj7i+dT3/OG+vSMhgwa+I6gZwuPVHkcY1EU8fdzI95R7SLJJREM/yAE5/seYZNxA0TX4BiZIZksg+bzwSr1WJEsX0N9rv3ANqkemjMvHkeYQb6dogo8iIIBG03L/OKvuHELsdVdiyiIdq2YU62x3wPQc2w/StDkrk+dq5eMW9H7Gh0MqDGF4ZKkWlQzrxPxJnJBbWRPcKczRgGMXeIXKfBU52Pn4L92dRC7RpJmKOVZwDgyeqNLXvHYiMpL0NH3DU3V2LFpVNHJtK3f6hsVPBS0w00kpg7iQhN5EejHe7GlD6SF41J2W53XsN1+5qmNew+El+Ugnk7Jp4GFDPpYAR5u9FW7GAChGTyFjBkAOYGlnl9ZrtMC53+pPuDtGwywszf7+MXpB2HmSWy/eC1tnEE9tZt9rAVO0BTM1gCPkvDNA0czvA76gwNphEG7QCADI89WiGiVDruOGrMpF7Yi6NavmfQUwflMI2vZ+rqeBhVocK9pYLd/lg3yXyue//EejW+BE42R+IbB3OfFGgpK1+oHnbWr8UobwD3sa3iKJo232wPKozU=
-  file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.tar.gz
+  file: ${PROJECT_NAME}-${TARGET}.tar.gz
   # don't delete the artifacts from previous phases
   skip_cleanup: true
   # deploy when a new tag is pushed
