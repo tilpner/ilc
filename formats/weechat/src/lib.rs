@@ -74,9 +74,11 @@ impl<'a> Iterator for Iter<'a> {
             // Don't match on the --> arrows, those are apparently often configured, and
             // that would break parsing for many users.
 
-            if tokens[5] == "has" {
+            let len = tokens.len();
+
+            if len >= 6 && tokens[5] == "has" {
                 // 2016-02-25 01:15:05 --> Foo (host@mask.foo) has joined #example
-                if tokens[6] == "joined" {
+                if len >= 8 && tokens[6] == "joined" {
                     return Some(Ok(Event {
                         ty: Type::Join {
                             nick: tokens[3].to_owned().into(),
@@ -87,7 +89,7 @@ impl<'a> Iterator for Iter<'a> {
                     }));
                 }
                 // 2016-02-25 01:36:13 <-- Foo (host@mask.foo) has left #channel (Some reason)
-                else if tokens[6] == "left" {
+                else if len >= 9 && tokens[6] == "left" {
                     return Some(Ok(Event {
                         ty: Type::Part {
                             nick: tokens[3].to_owned().into(),
@@ -100,7 +102,7 @@ impl<'a> Iterator for Iter<'a> {
                     }));
                 }
                 // 2016-02-25 01:38:55 <-- Foo (host@mask.foo) has quit (Some reason)
-                else if tokens[6] == "quit" {
+                else if len >= 8 && tokens[6] == "quit" {
                     return Some(Ok(Event {
                         ty: Type::Quit {
                             nick: tokens[3].to_owned().into(),
@@ -112,12 +114,12 @@ impl<'a> Iterator for Iter<'a> {
                         channel: self.context.channel.clone().map(Into::into),
                     }));
                 }
-            } else if tokens[2] == "--" {
+            } else if len >= 3 && tokens[2] == "--" {
                 // 2016-02-25 04:32:15	--	Notice(playbot-veno): ""
-                if tokens[3].starts_with("Notice(") {
+                if len >= 5 && tokens[3].starts_with("Notice(") {
                     return Some(Ok(Event {
                         ty: Type::Notice {
-                            from: tokens[3]["Notice(".len()..tokens.len() - 2].to_owned().into(),
+                            from: tokens[3]["Notice(".len()..tokens[3].len() - 2].to_owned().into(),
                             content: rejoin(&tokens[4..], &split_tokens[4..]),
                         },
                         time: parse_time(&self.context, tokens[0], tokens[1]),
@@ -125,8 +127,8 @@ impl<'a> Iterator for Iter<'a> {
                     }));
                 }
                 // 2014-07-11 15:00:03	--	irc: disconnected from server
-                else if tokens[3] == "irc:" && tokens[4] == "disconnected" && tokens[5] == "from" &&
-                   tokens[6] == "server" {
+                else if len >= 7 && tokens[3] == "irc:" && tokens[4] == "disconnected" &&
+                   tokens[5] == "from" && tokens[6] == "server" {
                     return Some(Ok(Event {
                         ty: Type::Disconnect,
                         time: parse_time(&self.context, tokens[0], tokens[1]),
@@ -135,7 +137,7 @@ impl<'a> Iterator for Iter<'a> {
                 }
                 // 2014-07-11 15:00:03	--	Foo|afk is now known as Foo
                 // 2015-05-09 13:56:05	--	You are now known as foo
-                else if tokens[5] == "now" && tokens[6] == "known" && tokens[7] == "as" &&
+                else if len >= 9 && tokens[5] == "now" && tokens[6] == "known" && tokens[7] == "as" &&
                    (tokens[4] == "is" || tokens[4] == "are") {
                     return Some(Ok(Event {
                         ty: Type::Nick {
