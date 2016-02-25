@@ -2,7 +2,7 @@ sudo: false
 
 language: rust
 
-rust: nightly
+rust: 1.6.0
 
 os:
   - linux
