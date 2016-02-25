@@ -16,11 +16,7 @@ clap = "2.1.2"
 chrono = "0.2.19"
 env_logger = "0.3.2"
 glob = "0.2.10"
-# ilc-base = "*"
-ilc-base = { path = "../base" }
-# ilc-ops = "*"
-ilc-ops = { path = "../ops" }
-# ilc-format-weechat = { optional = true, version = "*" }
-ilc-format-weechat = { optional = true, path = "../formats/weechat" }
-# ilc-format-energymech = { optional = true, version = "*" }
-ilc-format-energymech = { optional = true, path = "../formats/energymech" }
+ilc-base = "0.1.0"
+ilc-ops = "0.1.0"
+ilc-format-weechat = { optional = true, version = "0.1.0" }
+ilc-format-energymech = { optional = true, version = "0.1.0" }

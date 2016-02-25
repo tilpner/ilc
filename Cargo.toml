@@ -12,8 +12,7 @@ name = "ilc"
 doc = false
 
 [dependencies]
-# ilc-cli = "*"
-ilc-cli = { path = "cli" }
+ilc-cli = "0.1.0"
 
 [profile.release]
 debug = false

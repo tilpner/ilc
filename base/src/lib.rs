@@ -17,15 +17,12 @@ extern crate chrono;
 #[macro_use]
 extern crate log;
 extern crate rustc_serialize;
-// extern crate bincode;
-// extern crate rmp;
-// extern crate rmp_serialize as msgpack;
 
 pub mod event;
-// pub mod format;
 pub mod context;
 pub mod error;
 pub mod format;
+pub mod dummy;
 
 use std::io::{BufRead, Write};
 

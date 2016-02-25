@@ -8,6 +8,5 @@ repository = "https://github.com/tilpner/ilc"
 authors = ["Till Höppner <till@hoeppner.ws>"]
 
 [dependencies]
-# ilc-base = "*"
-ilc-base = { path = "../base" }
+ilc-base = "0.1.0"
 blist = "0.0.4"

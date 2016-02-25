@@ -12,32 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Traits and structs for conversion between various formats.
-//! As the source format may not provide the same information as the
-//! target format, all formats must allow for omittable information.
-
 use std::iter;
-use std::io::{BufRead, Write};
-use std::borrow::Cow;
+use std::io::BufRead;
 
 use event::Event;
 use context::Context;
 
-pub use self::energymech::Energymech;
-pub use self::weechat::Weechat;
-pub use self::binary::Binary;
-pub use self::msgpack::Msgpack;
-
-mod energymech;
-mod weechat;
-// pub mod irssi;
-mod binary;
-mod msgpack;
-
-
 pub struct Dummy;
 
-impl Decode for Dummy {
+impl ::Decode for Dummy {
     fn decode<'a>(&'a mut self,
                   _context: &'a Context,
                   _input: &'a mut BufRead)
