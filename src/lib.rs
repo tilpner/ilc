@@ -10,9 +10,9 @@ pub use ilc_ops::{convert, dedup, freq, parse, seen, sort};
 
 pub use ilc_cli::{decoder, encoder, force_decoder, force_encoder, open_files};
 
-pub use convert::convert;
-pub use dedup::dedup;
-pub use freq::freq;
-pub use parse::parse;
-pub use seen::seen;
-pub use sort::sort;
+pub use ilc_ops::convert::convert;
+pub use ilc_ops::dedup::dedup;
+pub use ilc_ops::freq::freq;
+pub use ilc_ops::parse::parse;
+pub use ilc_ops::seen::seen;
+pub use ilc_ops::sort::sort;
