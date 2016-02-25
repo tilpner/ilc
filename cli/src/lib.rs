@@ -127,6 +127,9 @@ pub fn main() {
                    .subcommand(SubCommand::with_name("sort").about("Sorts a log by time"))
                    .subcommand(SubCommand::with_name("dedup")
                                    .about("Removes duplicate log entries in close proximity"))
+                   .subcommand(SubCommand::with_name("merge")
+                                   .about("Merges the input logs. This has to keep everything \
+                                           in memory"))
                    .get_matches();
 
     let res = match args.subcommand() {
@@ -176,6 +179,23 @@ pub fn main() {
                          &mut *e.decoder(),
                          &mut *e.output(),
                          &*e.encoder())
+        }
+        ("merge", Some(args)) => {
+            // TODO: avoid (de-)serialization to weechat
+            let e = Environment(&args);
+            let (ctx, i, d, o, e) = (&e.context(),
+                                     &mut e.input(),
+                                     &mut *e.decoder(),
+                                     &mut *e.output(),
+                                     &*e.encoder());
+            let mut buffer = Vec::new();
+            match sort::sort(ctx, i, d, &mut buffer, &Weechat) {
+                Err(e) => error(Box::new(e)),
+                _ => (),
+            }
+            let mut read = io::Cursor::new(&buffer);
+            dedup::dedup(ctx, &mut read, &mut Weechat, o, e)
+
         }
         (sc, _) if !sc.is_empty() => panic!("Unimplemented subcommand `{}`, this is a bug", sc),
         _ => die("No command specified"),

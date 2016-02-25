@@ -1,7 +1,6 @@
 [package]
 authors = ["Till Hoeppner <till@hoeppner.ws>"]
 description = "IRC log converter/collector/cruncher"
-homepage = "https://github.com/tilpner/ilc"
 license = "Apache-2.0"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
@@ -13,9 +12,13 @@ doc = false
 
 [dependencies]
 ilc-cli = "0.1.0"
+ilc-base = "0.1.0"
+ilc-ops = "0.1.0"
+ilc-format-weechat = "0.1.0"
+ilc-format-energymech = "0.1.0"
 
 [profile.release]
-debug = false
+debug = true
 debug-assertions = false
-lto = true
+# lto = true
 opt-level = 3

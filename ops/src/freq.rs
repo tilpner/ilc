@@ -1,3 +1,5 @@
+//! Per-nick word/line statistics
+
 use ilc_base::{self, Context, Decode, Event};
 use ilc_base::event::Type;
 
@@ -35,6 +37,9 @@ fn strip_nick_prefix(s: &str) -> &str {
 }
 
 // TODO: Don't print results, return Stats struct
+/// Return the `count` most active nicks, with lines, words and words per lines calculated.
+///
+/// `usize::MAX` is a good default if you don't want to cap the statistics.
 pub fn freq(count: usize,
             ctx: &Context,
             input: &mut BufRead,

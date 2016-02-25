@@ -4,9 +4,13 @@ extern crate ilc_base;
 mod ageset;
 pub mod freq;
 
+/// No-op log parsing
 pub mod parse {
     use ilc_base::{self, Context, Decode};
     use std::io::BufRead;
+
+    /// Simply parse the input, without further validation or conversion. No information is stored.
+    /// This will return `Err` if the decoder yields `Err`.
     pub fn parse(ctx: &Context, input: &mut BufRead, decoder: &mut Decode) -> ilc_base::Result<()> {
         for e in decoder.decode(&ctx, input) {
             try!(e);
@@ -15,10 +19,14 @@ pub mod parse {
     }
 }
 
+/// Log format conversion
 pub mod convert {
     use ilc_base::{self, Context, Decode, Encode};
     use std::io::{BufRead, Write};
 
+    /// Convert from one format to another, not necessarily different, format. In combination with a
+    /// timezone offset, this can be used to correct the timestamps.
+    /// Will return `Err` and abort conversion if the decoder yields `Err` or re-encoding fails.
     pub fn convert(ctx: &Context,
                    input: &mut BufRead,
                    decoder: &mut Decode,
@@ -32,10 +40,14 @@ pub mod convert {
     }
 }
 
+/// Last-seen of nicks
 pub mod seen {
     use ilc_base::{self, Context, Decode, Encode, Event};
     use std::io::{BufRead, Write};
 
+    /// Return the last message of a given nickname, searching from the beginning of the logs.
+    /// Will return `Err` if the decoder yields `Err`. This relies on absolute timestamps, and
+    /// behaviour without full dates is undefined.
     pub fn seen(nick: &str,
                 ctx: &Context,
                 input: &mut BufRead,
@@ -59,10 +71,17 @@ pub mod seen {
     }
 }
 
+/// Internal (as opposed to external, not to be confused with private) log sorting
 pub mod sort {
     use ilc_base::{self, Context, Decode, Encode, Event};
     use std::io::{BufRead, Write};
 
+    /// **Memory-intensive**
+    /// Sort the input, discarding faulty events. This will
+    /// read *all events* into memory, then sort them by time and write them back.
+    /// Behaviour is undefined if events lack full date information.
+    ///
+    /// *This should be an external merge-sort, but is a placeholder until implementation*
     pub fn sort(ctx: &Context,
                 input: &mut BufRead,
                 decoder: &mut Decode,
@@ -81,6 +100,7 @@ pub mod sort {
     }
 }
 
+/// Event deduplication
 pub mod dedup {
     use std::io::{BufRead, Write};
     use std::hash::{Hash, Hasher};
@@ -88,7 +108,7 @@ pub mod dedup {
     use ilc_base::{self, Context, Decode, Encode, Event};
 
     #[derive(Clone, Debug, PartialEq, Eq)]
-    pub struct NoTimeHash<'a>(pub Event<'a>);
+    struct NoTimeHash<'a>(pub Event<'a>);
 
     impl<'a> Hash for NoTimeHash<'a> {
         fn hash<H>(&self, state: &mut H)
@@ -99,6 +119,10 @@ pub mod dedup {
         }
     }
 
+    /// Deduplicate subsequent identical elements, e.g. after a sorting
+    /// operation. This will **not** read all events into memory, and only
+    /// operate on a short window of events. Therefore, it'll only work correctly
+    /// on sorted or very short logs.
     pub fn dedup(ctx: &Context,
                  input: &mut BufRead,
                  decoder: &mut Decode,
