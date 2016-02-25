@@ -19,9 +19,9 @@ There are other builds, including for/with musl, mingw, or ARM. Please [check ou
 
 | Platform | 64 bit | 32 bit |
 | -------- | ------ | ------ |
-| Linux    | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-unknown-linux-gnu.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-unknown-linux-gnu.tar.gz) |
-| OS X     | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-apple-darwin.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-apple-darwin.tar.gz) |
-| Windows  | [Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-x86_64-pc-windows-msvc.zip) |[Download](https://github.com/tilpner/ilc/releases/download/v0.1.2/ilc-i686-pc-windows-msvc.zip) |
+| Linux    | [Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-x86_64-unknown-linux-gnu.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-i686-unknown-linux-gnu.tar.gz) |
+| OS X     | [Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-x86_64-apple-darwin.tar.gz) |[Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-i686-apple-darwin.tar.gz) |
+| Windows  | [Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-x86_64-pc-windows-msvc.zip) |[Download](https://github.com/tilpner/ilc/releases/download/v0.2.0/ilc-i686-pc-windows-msvc.zip) |
 
 *Note that these links might be broken in the one hour it takes between release and uploading builds, sorry for that.*
 
