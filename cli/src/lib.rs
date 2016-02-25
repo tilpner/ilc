@@ -178,7 +178,7 @@ pub fn main() {
                          &*e.encoder())
         }
         (sc, _) if !sc.is_empty() => panic!("Unimplemented subcommand `{}`, this is a bug", sc),
-        _ => Ok(()),
+        _ => die("No command specified"),
     };
 
     match res {
