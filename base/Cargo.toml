@@ -1,0 +1,9 @@
+[package]
+name = "ilc-base"
+version = "0.1.0"
+authors = ["Till Höppner <till@hoeppner.ws>"]
+
+[dependencies]
+log = "0.3.5"
+chrono = "0.2.19"
+rustc-serialize = "0.3.18"

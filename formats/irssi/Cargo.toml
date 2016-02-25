@@ -1,0 +1,6 @@
+[package]
+name = "ilc-format-irssi"
+version = "0.1.0"
+authors = ["Till Höppner <till@hoeppner.ws>"]
+
+[dependencies]

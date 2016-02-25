@@ -1,0 +1,10 @@
+[package]
+name = "ilc-format-weechat"
+version = "0.1.0"
+authors = ["Till Höppner <till@hoeppner.ws>"]
+
+[dependencies]
+log = "0.3.5"
+chrono = "0.2.19"
+# ilc-base = "*"
+ilc-base = { path = "../../base" }

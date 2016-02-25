@@ -5,25 +5,15 @@ homepage = "https://github.com/tilpner/ilc"
 license = "Apache-2.0"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
-version = "0.1.2"
+version = "0.2.0"
 
 [[bin]]
-doc = false
 name = "ilc"
+doc = false
 
 [dependencies]
-tendril = "0.2.1"
-bincode = "0.4.0"
-blist = "0.0.4"
-chrono = "0.2.18"
-clap = "2.0.2"
-env_logger = "0.3.2"
-glob = "0.2.10"
-log = "0.3.5"
-regex = "0.1.48"
-rmp = "0.7.3"
-rmp-serialize = "0.7.0"
-rustc-serialize = "0.3.16"
+# ilc-cli = "*"
+ilc-cli = { path = "cli" }
 
 [profile.release]
 debug = false

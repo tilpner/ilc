@@ -1,0 +1,6 @@
+[package]
+name = "ilc-format-binary"
+version = "0.1.0"
+authors = ["Till Höppner <till@hoeppner.ws>"]
+
+[dependencies]

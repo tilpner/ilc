@@ -1,0 +1,22 @@
+[package]
+name = "ilc-cli"
+version = "0.1.0"
+authors = ["Till Höppner <till@hoeppner.ws>"]
+
+[features]
+default = ["ilc-format-weechat", "ilc-format-energymech"]
+
+[dependencies]
+log = "0.3.5"
+clap = "2.1.2"
+chrono = "0.2.19"
+env_logger = "0.3.2"
+glob = "0.2.10"
+# ilc-base = "*"
+ilc-base = { path = "../base" }
+# ilc-ops = "*"
+ilc-ops = { path = "../ops" }
+# ilc-format-weechat = { optional = true, version = "*" }
+ilc-format-weechat = { optional = true, path = "../formats/weechat" }
+# ilc-format-energymech = { optional = true, version = "*" }
+ilc-format-energymech = { optional = true, path = "../formats/energymech" }
