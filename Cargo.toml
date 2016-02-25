@@ -4,7 +4,7 @@ description = "IRC log converter/collector/cruncher"
 license = "Apache-2.0"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
-version = "0.2.0"
+version = "0.2.1"
 
 [[bin]]
 name = "ilc"
