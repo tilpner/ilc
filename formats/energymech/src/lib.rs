@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![feature(slice_patterns)]
-
 #[macro_use]
 extern crate log;
 extern crate ilc_base;
@@ -86,91 +84,140 @@ impl<'a> Iterator for Iter<'a> {
                 info!("Parsing:   {:?}", tokens);
             }
 
-            match &tokens[..tokens.len() - 1] {
-                [time, "*", nick, content..] => {
-                    return Some(Ok(Event {
-                        ty: Type::Action {
-                            from: nick.to_owned().into(),
-                            content: rejoin(content, &split_tokens[3..]),
-                        },
-                        time: parse_time(&self.context, time),
-                        channel: self.context.channel.clone().map(Into::into),
-                    }))
-                }
-                [time, "***", old, "is", "now", "known", "as", new] => {
+            // slice pattern matching is not stable as of Feb. 2016 and was replaced with
+            // nested if-else chains in this module.
+
+            let len = tokens.len();
+
+            // [21:53:49] * Foo emotes
+            if len >= 4 && tokens[1] == "*" {
+                return Some(Ok(Event {
+                    ty: Type::Action {
+                        from: tokens[2].to_owned().into(),
+                        content: rejoin(&tokens[3..], &split_tokens[3..]),
+                    },
+                    time: parse_time(&self.context, tokens[0]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
+            }
+
+            if len >= 2 && tokens[1] == "***" {
+                // [21:24:57] *** Foo is now known as Bar
+                if len >= 8 && tokens[3] == "is" && tokens[4] == "now" && tokens[5] == "known" &&
+                   tokens[6] == "as" {
                     return Some(Ok(Event {
                         ty: Type::Nick {
-                            old_nick: old.to_owned().into(),
-                            new_nick: new.to_owned().into(),
+                            old_nick: tokens[2].to_owned().into(),
+                            new_nick: tokens[7].to_owned().into(),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, "***", nick, "sets", "mode:", mode, masks..] => {
+
+                // [23:21:17] *** Paster was kicked by fripp.mozilla.org (Channel flood triggered (limit is 5 lines in 3 secs))
+                if len >= 8 && tokens[3] == "was" && tokens[4] == "kicked" && tokens[5] == "by" {
+                    return Some(Ok(Event {
+                        ty: Type::Kick {
+                            kicked_nick: tokens[2].to_owned().into(),
+                            kicking_nick: Some(tokens[6].to_owned().into()),
+                            kick_message: Some(strip_one(&rejoin(&tokens[7..],
+                                                                 &split_tokens[7..]))
+                                                   .into()),
+                        },
+                        time: parse_time(&self.context, tokens[0]),
+                        channel: self.context.channel.clone().map(Into::into),
+                    }));
+                }
+
+                // [21:49:59] *** ChanServ sets mode: +v Foo
+                if len >= 7 && tokens[3] == "sets" && tokens[4] == "mode:" {
                     return Some(Ok(Event {
                         ty: Type::Mode {
-                            nick: Some(nick.to_owned().into()),
-                            mode: mode.to_owned().into(),
-                            masks: rejoin(&masks, &split_tokens[6..]).to_owned().into(),
+                            nick: Some(tokens[2].to_owned().into()),
+                            mode: tokens[5].to_owned().into(),
+                            masks: rejoin(&tokens[6..], &split_tokens[6..]).to_owned().into(),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, "***", "Joins:", nick, host] => {
+
+                // [21:49:59] *** Joins: Foo (host@some.mask)
+                if len >= 5 && tokens[2] == "Joins:" {
                     return Some(Ok(Event {
                         ty: Type::Join {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(tokens[4]).into()),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, "***", "Parts:", nick, host, reason..] => {
+
+                // [03:52:11] *** Parts: Foo (some@host.mask) (A reason? Nah...)
+                if len >= 6 && tokens[2] == "Parts:" {
                     return Some(Ok(Event {
                         ty: Type::Part {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
-                            reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(tokens[4]).into()),
+                            reason: Some(strip_one(&rejoin(&tokens[5..], &split_tokens[5..]))
+                                             .into()),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, "***", "Quits:", nick, host, reason..] => {
+
+                // [03:48:33] *** Quits: Foo (just@a.hostmask) (Ping timeout: 42 seconds)
+                if len >= 6 && tokens[2] == "Quits:" {
                     return Some(Ok(Event {
                         ty: Type::Quit {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
-                            reason: Some(strip_one(&rejoin(reason, &split_tokens[5..])).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(tokens[4]).into()),
+                            reason: Some(strip_one(&rejoin(&tokens[5..], &split_tokens[5..]))
+                                             .into()),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, "***", nick, "changes", "topic", "to", topic..] => {
+
+                // [09:44:56] *** Foo changes topic to 'Hi there, why are you reading this comment?'
+                if len >= 7 && tokens[3] == "changes" && tokens[4] == "topic" && tokens[5] == "to" {
                     return Some(Ok(Event {
                         ty: Type::TopicChange {
-                            nick: Some(nick.to_owned().into()),
-                            new_topic: strip_one(&rejoin(topic, &split_tokens[6..])).into(),
+                            nick: Some(tokens[2].to_owned().into()),
+                            new_topic: strip_one(&rejoin(&tokens[6..], &split_tokens[6..])).into(),
                         },
-                        time: parse_time(&self.context, time),
+                        time: parse_time(&self.context, tokens[0]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [time, nick, content..] if nick.starts_with('<') && nick.ends_with('>') => {
-                    return Some(Ok(Event {
-                        ty: Type::Msg {
-                            from: strip_one(nick).into(),
-                            content: rejoin(content, &split_tokens[2..]),
-                        },
-                        time: parse_time(&self.context, time),
-                        channel: self.context.channel.clone().map(Into::into),
-                    }))
-                }
-                _ => (),
+            }
+
+            // [03:36:01] <Foo> Just some moderately ugly code, nothing special to be found here.
+            if len >= 3 && tokens[1].starts_with('<') && tokens[1].ends_with('>') {
+                return Some(Ok(Event {
+                    ty: Type::Msg {
+                        from: strip_one(tokens[1]).into(),
+                        content: rejoin(&tokens[2..], &split_tokens[2..]),
+                    },
+                    time: parse_time(&self.context, tokens[0]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
+            }
+
+            // [10:25:22] -playbot- true
+            if len >= 3 && tokens[1].starts_with('-') && tokens[1].ends_with('-') {
+                return Some(Ok(Event {
+                    ty: Type::Notice {
+                        from: strip_one(tokens[1]).into(),
+                        content: rejoin(&tokens[2..], &split_tokens[2..]),
+                    },
+                    time: parse_time(&self.context, tokens[0]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
             }
         }
     }
