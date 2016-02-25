@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![feature(slice_patterns)]
-
 #[macro_use]
 extern crate log;
 extern crate ilc_base;
@@ -70,88 +68,106 @@ impl<'a> Iterator for Iter<'a> {
                 info!("Parsing:   {:?}", tokens);
             }
 
-            match &tokens[..tokens.len() - 1] {
-                [date, time, "-->", nick, host, "has", "joined", channel, _..] => {
+            // slice pattern matching is not stable as of Feb. 2016 and was replaced with
+            // nested if-else chains in this module.
+
+            // Don't match on the --> arrows, those are apparently often configured, and
+            // that would break parsing for many users.
+
+            if tokens[5] == "has" {
+                // 2016-02-25 01:15:05 --> Foo (host@mask.foo) has joined #example
+                if tokens[6] == "joined" {
                     return Some(Ok(Event {
                         ty: Type::Join {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(tokens[4]).into()),
                         },
-                        channel: Some(channel.to_owned().into()),
-                        time: parse_time(&self.context, date, time),
-                    }))
+                        channel: Some(tokens[7].to_owned().into()),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
+                    }));
                 }
-                [date, time, "<--", nick, host, "has", "left", channel, reason..] => {
+                // 2016-02-25 01:36:13 <-- Foo (host@mask.foo) has left #channel (Some reason)
+                else if tokens[6] == "left" {
                     return Some(Ok(Event {
                         ty: Type::Part {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
-                            reason: Some(strip_one(&rejoin(reason, &split_tokens[8..])).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(&tokens[4]).into()),
+                            reason: Some(strip_one(&rejoin(&tokens[8..], &split_tokens[8..]))
+                                             .into()),
                         },
-                        channel: Some(channel.to_owned().into()),
-                        time: parse_time(&self.context, date, time),
-                    }))
+                        channel: Some(tokens[7].to_owned().into()),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
+                    }));
                 }
-                [date, time, "<--", nick, host, "has", "quit", reason..] => {
+                // 2016-02-25 01:38:55 <-- Foo (host@mask.foo) has quit (Some reason)
+                else if tokens[6] == "quit" {
                     return Some(Ok(Event {
                         ty: Type::Quit {
-                            nick: nick.to_owned().into(),
-                            mask: Some(strip_one(host).into()),
-                            reason: Some(strip_one(&rejoin(reason, &split_tokens[7..])).into()),
+                            nick: tokens[3].to_owned().into(),
+                            mask: Some(strip_one(tokens[4]).into()),
+                            reason: Some(strip_one(&rejoin(&tokens[7..], &split_tokens[7..]))
+                                             .into()),
                         },
-                        time: parse_time(&self.context, date, time),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [date, time, "--", notice, content..] if notice.starts_with("Notice(") => {
+            } else if tokens[2] == "--" {
+                // 2016-02-25 04:32:15	--	Notice(playbot-veno): ""
+                if tokens[3].starts_with("Notice(") {
                     return Some(Ok(Event {
                         ty: Type::Notice {
-                            from: notice["Notice(".len()..notice.len() - 2].to_owned().into(),
-                            content: rejoin(content, &split_tokens[4..]),
+                            from: tokens[3]["Notice(".len()..tokens.len() - 2].to_owned().into(),
+                            content: rejoin(&tokens[4..], &split_tokens[4..]),
                         },
-                        time: parse_time(&self.context, date, time),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [date, time, "--", "irc:", "disconnected", "from", "server", _..] => {
+                // 2014-07-11 15:00:03	--	irc: disconnected from server
+                else if tokens[3] == "irc:" && tokens[4] == "disconnected" && tokens[5] == "from" &&
+                   tokens[6] == "server" {
                     return Some(Ok(Event {
                         ty: Type::Disconnect,
-                        time: parse_time(&self.context, date, time),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [date, time, "--", nick, verb, "now", "known", "as", new_nick] if verb == "is" ||
-                                                                                  verb == "are" => {
+                // 2014-07-11 15:00:03	--	Foo|afk is now known as Foo
+                // 2015-05-09 13:56:05	--	You are now known as foo
+                else if tokens[5] == "now" && tokens[6] == "known" && tokens[7] == "as" &&
+                   (tokens[4] == "is" || tokens[4] == "are") {
                     return Some(Ok(Event {
                         ty: Type::Nick {
-                            old_nick: nick.to_owned().into(),
-                            new_nick: new_nick.to_owned().into(),
+                            old_nick: tokens[3].to_owned().into(),
+                            new_nick: tokens[8].to_owned().into(),
                         },
-                        time: parse_time(&self.context, date, time),
+                        time: parse_time(&self.context, tokens[0], tokens[1]),
                         channel: self.context.channel.clone().map(Into::into),
-                    }))
+                    }));
                 }
-                [date, time, sp, "*", nick, msg..] if sp.clone().is_empty() => {
-                    return Some(Ok(Event {
-                        ty: Type::Action {
-                            from: nick.to_owned().into(),
-                            content: rejoin(msg, &split_tokens[5..]),
-                        },
-                        time: parse_time(&self.context, date, time),
-                        channel: self.context.channel.clone().map(Into::into),
-                    }))
-                }
-                [date, time, nick, msg..] => {
-                    return Some(Ok(Event {
-                        ty: Type::Msg {
-                            from: nick.to_owned().into(),
-                            content: rejoin(msg, &split_tokens[3..]),
-                        },
-                        time: parse_time(&self.context, date, time),
-                        channel: self.context.channel.clone().map(Into::into),
-                    }))
-                }
-                _ => (),
+            }
+            // 2016-01-24 20:32:57	 *	nick emotes
+            else if tokens[3] == "*" && tokens[2].is_empty() {
+                return Some(Ok(Event {
+                    ty: Type::Action {
+                        from: tokens[4].to_owned().into(),
+                        content: rejoin(&tokens[5..], &split_tokens[5..]),
+                    },
+                    time: parse_time(&self.context, tokens[0], tokens[1]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
+            }
+            // 2016-01-24 20:32:25	nick	just some message
+            else {
+                return Some(Ok(Event {
+                    ty: Type::Msg {
+                        from: tokens[2].to_owned().into(),
+                        content: rejoin(&tokens[3..], &split_tokens[3..]),
+                    },
+                    time: parse_time(&self.context, tokens[0], tokens[1]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
             }
         }
     }
