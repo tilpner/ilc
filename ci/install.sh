@@ -24,6 +24,10 @@ EOF
     # doesn't work for nightly
     # version=$(rustc -V | cut -d' ' -f2)
     version=$(rustc -V | cut -d' ' -f2 | cut -d'-' -f2)
+
+    if [ "$TARGET" = "x86_64-unknown-linux-musl" ]; then
+        version="nightly"
+    fi
     tarball=rust-std-${version}-${TARGET}
 
     curl -Os http://static.rust-lang.org/dist/${tarball}.tar.gz

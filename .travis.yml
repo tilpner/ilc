@@ -2,7 +2,10 @@ sudo: false
 
 language: rust
 
-rust: nightly
+rust:
+  - stable
+  - beta
+  - nightly
 
 os:
   - linux
@@ -15,13 +18,18 @@ env:
 
 matrix:
   allow_failures:
-    - rust: stable
     - rust: beta
+    - rust: nightly
+    - os: osx
 
   # Clear the whole matrix
   exclude:
     - os: linux
     - os: osx
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+
   # Add each target manually
   # pattern shown below
   include:
@@ -29,6 +37,7 @@ matrix:
     # may have problems when too many threads are spawned. Also, by the next Rust stable release,
     # this target will be replaced by `armv7-unknown-linux-gnueabihf`.
     - os: linux
+      rust: stable
       env: TARGET=arm-unknown-linux-gnueabihf
       # Extra packages only for this build job
       addons:
@@ -41,6 +50,7 @@ matrix:
             # Emulator
             - qemu-user
     - os: linux
+      rust: stable
       env: TARGET=i686-unknown-linux-gnu
       addons:
         apt:
@@ -48,12 +58,16 @@ matrix:
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
     - os: linux
+      rust: stable
       env: TARGET=x86_64-unknown-linux-gnu
     - os: linux
+      rust: nightly
       env: TARGET=x86_64-unknown-linux-musl
     - os: osx
+      rust: stable
       env: TARGET=i686-apple-darwin
     - os: osx
+      rust: stable
       env: TARGET=x86_64-apple-darwin
 
 install:
