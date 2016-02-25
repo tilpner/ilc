@@ -22,8 +22,8 @@ EOF
 
     # e.g. 1.6.0
     # doesn't work for nightly
-    # version=$(rustc -V | cut -d' ' -f2)
-    version=$(rustc -V | cut -d' ' -f2 | cut -d'-' -f2)
+    version=$(rustc -V | cut -d' ' -f2)
+    # version=$(rustc -V | cut -d' ' -f2 | cut -d'-' -f2)
     tarball=rust-std-${version}-${TARGET}
 
     curl -Os http://static.rust-lang.org/dist/${tarball}.tar.gz
