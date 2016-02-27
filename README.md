@@ -1,9 +1,9 @@
 ilc
 =========
-[![Travis](https://img.shields.io/travis/tilpner/ilc.svg?style=flat-square)](https://travis-ci.org/tilpner/ilc)
-[![Appveyor](https://img.shields.io/appveyor/ci/tilpner/ilc.svg?style=flat-square)](https://ci.appveyor.com/project/tilpner/ilc)
+[![Travis](https://img.shields.io/travis/tilpner/ilc.svg?style=flat-square&label=travis)](https://travis-ci.org/tilpner/ilc)
+[![Appveyor](https://img.shields.io/appveyor/ci/tilpner/ilc.svg?style=flat-square&label=appveyor)](https://ci.appveyor.com/project/tilpner/ilc)
 [![Crates.io version](https://img.shields.io/crates/v/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
-[![Crates.io license](https://img.shields.io/crates/l/ilc.svg?style=flat-square)](https://crates.io/crates/ilc)
+[![Crates.io license](https://img.shields.io/crates/l/ilc.svg?style=flat-square)](http://choosealicense.com/licenses/apache-2.0/)
 
 #### What is this thing?
 
