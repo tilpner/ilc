@@ -31,7 +31,9 @@ Because I'm using experimental features (slice_patterns), you have to use a Rust
 
 ###### From crates.io
 
-    cargo install ilc
+```console
+cargo install ilc
+```
 
 ###### From git
 
@@ -42,10 +44,12 @@ Because I'm using experimental features (slice_patterns), you have to use a Rust
 
 To compile:
 
-    cargo build --release
+```console
+cargo build --release
+```
 
 #### Usage
-```
+```console
 Usage:
   ilc parse [options] [-i FILE...]
   ilc convert [options] [-i FILE...]
