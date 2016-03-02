@@ -4,18 +4,21 @@ description = "IRC log converter/collector/cruncher"
 license = "Apache-2.0"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
-version = "0.2.2"
+version = "0.3.0"
 
 [[bin]]
 name = "ilc"
 doc = false
 
 [dependencies]
-ilc-cli = "0.1.0"
-ilc-base = "0.1.0"
-ilc-ops = "0.1.0"
-ilc-format-weechat = "0.1.0"
-ilc-format-energymech = "0.1.0"
+ilc-cli = "~0.1"
+ilc-base = "~0.2"
+ilc-ops = "~0.1"
+ilc-format-weechat = "~0.2"
+ilc-format-energymech = "~0.2"
+
+[dev-dependencies]
+flate2 = "~0.2"
 
 [profile.release]
 debug = false

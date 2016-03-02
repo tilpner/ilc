@@ -1,6 +1,6 @@
 [package]
 name = "ilc-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "IRC log converter/collector/cruncher"
 homepage = "https://github.com/tilpner/ilc"
 license = "Apache-2.0"
@@ -16,7 +16,7 @@ clap = "2.1.2"
 chrono = "0.2.19"
 env_logger = "0.3.2"
 glob = "0.2.10"
-ilc-base = "0.1.0"
-ilc-ops = "0.1.0"
-ilc-format-weechat = { optional = true, version = "0.1.0" }
-ilc-format-energymech = { optional = true, version = "0.1.0" }
+ilc-base = "~0.2"
+ilc-ops = "~0.1"
+ilc-format-weechat = { optional = true, version = "~0.2" }
+ilc-format-energymech = { optional = true, version = "~0.2" }

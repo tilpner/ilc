@@ -29,6 +29,7 @@ use log::LogLevel::Info;
 
 use chrono::*;
 
+#[derive(Copy, Clone)]
 pub struct Energymech;
 
 static TIME_FORMAT: &'static str = "%H:%M:%S";
@@ -219,12 +220,15 @@ impl<'a> Iterator for Iter<'a> {
                     channel: self.context.channel.clone().map(Into::into),
                 }));
             }
+            if option_env!("FUSE").is_some() {
+                panic!("Shouldn't reach here, this is a bug!")
+            }
         }
     }
 }
 
 impl Decode for Energymech {
-    fn decode<'a>(&'a mut self,
+    fn decode<'a>(&'a self,
                   context: &'a Context,
                   input: &'a mut BufRead)
                   -> Box<Iterator<Item = ilc_base::Result<Event<'a>>> + 'a> {
@@ -246,6 +250,13 @@ impl Encode for Energymech {
             &Event { ty: Type::Msg { ref from, ref content }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] <{}> {}",
+                              time.with_format(&context.timezone, TIME_FORMAT),
+                              from,
+                              content))
+            }
+            &Event { ty: Type::Notice { ref from, ref content }, ref time, .. } => {
+                try!(writeln!(&mut output,
+                              "[{}] -{}- {}",
                               time.with_format(&context.timezone, TIME_FORMAT),
                               from,
                               content))
@@ -302,7 +313,12 @@ impl Encode for Energymech {
                               nick.as_ref().expect("Nick not present, but required."),
                               new_topic))
             }
-            _ => (),
+            _ => {
+                if option_env!("FUSE").is_some() {
+                    panic!("Shouldn't reach here, this is a bug!")
+                }
+                ()
+            }
         }
         Ok(())
     }

@@ -1,4 +1,7 @@
+#[macro_use]
+extern crate log;
 extern crate blist;
+extern crate bit_set;
 extern crate ilc_base;
 
 mod ageset;
@@ -13,7 +16,10 @@ pub mod parse {
     /// This will return `Err` if the decoder yields `Err`.
     pub fn parse(ctx: &Context, input: &mut BufRead, decoder: &mut Decode) -> ilc_base::Result<()> {
         for e in decoder.decode(&ctx, input) {
-            try!(e);
+            match e {
+                Ok(e) => debug!("{:?}", e),
+                Err(e) => error!("{:?}", e),
+            }
         }
         Ok(())
     }
@@ -147,5 +153,75 @@ pub mod dedup {
             }
         }
         Ok(())
+    }
+}
+
+/// "Efficient" n-way merging
+pub mod merge {
+    use std::io::{BufRead, Write};
+    use bit_set::BitSet;
+    use ilc_base::{self, Context, Decode, Encode, Event};
+
+    /// Merge several individually sorted logs, *without* reading everything
+    /// into memory.
+    ///
+    /// The `input` and `decode` parameter will be zipped, so make sure they match up.
+    ///
+    /// Output will be inconsistent if every input isn't sorted by itself.
+    /// Logs with incomplete dates are free to do to weird stuff.
+    pub fn merge<'a>(ctx: &Context,
+                     input: Vec<&'a mut BufRead>,
+                     decode: &mut Decode,
+                     output: &mut Write,
+                     encode: &Encode)
+                     -> ilc_base::Result<()> {
+        let mut events = input.into_iter()
+                              .map(|i| decode.decode(&ctx, i).peekable())
+                              .collect::<Vec<_>>();
+        let mut empty = BitSet::with_capacity(events.len());
+
+        loop {
+            if events.is_empty() {
+                return Ok(());
+            }
+
+            let earliest_idx = {
+                // Lifetimes can be a lot easier if you don't nest closures.
+                // Uglier too, yes. But hey, at least it compiles.
+                // Currently earliest event
+                let mut current = None;
+                // Index of stream that has "current" as head
+                let mut stream_idx = None;
+
+                for (idx, stream) in events.iter_mut().enumerate() {
+                    let peek = stream.peek();
+                    if let Some(ev) = peek {
+                        // Ignore errors in stream
+                        if let &Ok(ref ev) = ev {
+                            if current.map(|c: &Event| ev.time < c.time).unwrap_or(true) {
+                                current = Some(ev);
+                                stream_idx = Some(idx);
+                            }
+                        }
+                    } else {
+                        empty.insert(idx);
+                    }
+                }
+                stream_idx
+            };
+
+            // Safe because of matching against Some(&Ok(ref ev)) earlier
+            let earliest = earliest_idx.map(|idx| events[idx].next().unwrap().unwrap());
+
+            if let Some(event) = earliest {
+                try!(encode.encode(&ctx, output, &event));
+            }
+
+            // Keep non-empty streams
+            for (offset, idx) in empty.iter().enumerate() {
+                events.remove(offset + idx);
+            }
+            empty.clear();
+        }
     }
 }

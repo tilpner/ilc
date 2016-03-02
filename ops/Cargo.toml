@@ -1,6 +1,6 @@
 [package]
 name = "ilc-ops"
-version = "0.1.1"
+version = "0.1.2"
 description = "IRC log converter/collector/cruncher"
 homepage = "https://github.com/tilpner/ilc"
 license = "Apache-2.0"
@@ -8,5 +8,7 @@ repository = "https://github.com/tilpner/ilc"
 authors = ["Till Höppner <till@hoeppner.ws>"]
 
 [dependencies]
-ilc-base = "0.1.0"
+log = "0.3.5"
+ilc-base = "~0.2"
 blist = "0.0.4"
+bit-set = "0.3.0"

@@ -26,7 +26,7 @@ pub mod dummy;
 use std::io::{BufRead, Write};
 
 pub use context::Context;
-pub use event::Event;
+pub use event::{Event, Time};
 pub use error::*;
 
 pub trait Encode {
@@ -37,8 +37,8 @@ pub trait Encode {
                   -> error::Result<()>;
 }
 
-pub trait Decode  {
-    fn decode<'a>(&'a mut self,
+pub trait Decode {
+    fn decode<'a>(&'a self,
                   context: &'a Context,
                   input: &'a mut BufRead)
                   -> Box<Iterator<Item = error::Result<Event<'a>>> + 'a>;

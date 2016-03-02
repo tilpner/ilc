@@ -47,6 +47,10 @@ mod chain;
 
 pub fn main() {
     env_logger::init().unwrap();
+    if option_env!("FUSE").is_some() {
+        info!("Compiled with FUSEs")
+    }
+
     let args = App::new("ilc")
                    .version(crate_version!())
                    .setting(AppSettings::GlobalVersion)
@@ -181,21 +185,22 @@ pub fn main() {
                          &*e.encoder())
         }
         ("merge", Some(args)) => {
-            // TODO: avoid (de-)serialization to weechat
             let e = Environment(&args);
-            let (ctx, i, d, o, e) = (&e.context(),
-                                     &mut e.input(),
-                                     &mut *e.decoder(),
-                                     &mut *e.output(),
-                                     &*e.encoder());
-            let mut buffer = Vec::new();
-            match sort::sort(ctx, i, d, &mut buffer, &Weechat) {
-                Err(e) => error(Box::new(e)),
-                _ => (),
-            }
-            let mut read = io::Cursor::new(&buffer);
-            dedup::dedup(ctx, &mut read, &mut Weechat, o, e)
 
+            let mut inputs = e.inputs();
+            // let mut decoders = e.decoders();
+
+            let borrowed_inputs = inputs.iter_mut()
+                                        .map(|a| a as &mut BufRead)
+                                        .collect();
+            // let borrowed_decoders = decoders.iter_mut()
+            //                                .map(|a| &mut **a as &mut Decode)
+            //                                .collect();
+            merge::merge(&e.context(),
+                         borrowed_inputs,
+                         &mut *e.decoder(),
+                         &mut *e.output(),
+                         &*e.encoder())
         }
         (sc, _) if !sc.is_empty() => panic!("Unimplemented subcommand `{}`, this is a bug", sc),
         _ => die("No command specified"),
@@ -272,15 +277,44 @@ impl<'a> Environment<'a> {
     pub fn context(&self) -> Context {
         build_context(self.0)
     }
+
     pub fn input(&self) -> Box<BufRead> {
         open_files(gather_input(self.0))
     }
+
+    pub fn inputs(&self) -> Vec<Box<BufRead>> {
+        gather_input(self.0)
+            .iter()
+            .map(|path| {
+                Box::new(BufReader::new(File::open(path)
+                                            .unwrap_or_else(|e| {
+                                                error(Box::new(e))
+                                            }))) as Box<BufRead>
+            })
+            .collect()
+    }
+
     pub fn output(&self) -> Box<Write> {
         open_output(self.0)
     }
+
     pub fn decoder(&self) -> Box<Decode> {
         force_decoder(self.0.value_of("format").or(self.0.value_of("input_format")))
     }
+
+    /* pub fn decoders(&self) -> Vec<Box<Decode>> {
+     * self.0
+     * .value_of("format")
+     * .into_iter()
+     * .chain(self.0
+     * .values_of("input_formats")
+     * .map(|i| Box::new(i) as Box<Iterator<Item = _>>)
+     * .unwrap_or(Box::new(iter::empty()) as Box<Iterator<Item = _>>))
+     * .map(Option::Some)
+     * .map(force_decoder)
+     * .collect()
+     * } */
+
     pub fn encoder(&self) -> Box<Encode> {
         force_encoder(self.0.value_of("format").or(self.0.value_of("output_format")))
     }

@@ -26,6 +26,7 @@ use ilc_base::format::{rejoin, strip_one};
 
 use log::LogLevel::Info;
 
+#[derive(Copy, Clone)]
 pub struct Weechat;
 
 static TIME_DATE_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
@@ -76,44 +77,40 @@ impl<'a> Iterator for Iter<'a> {
 
             let len = tokens.len();
 
-            if len >= 6 && tokens[5] == "has" {
-                // 2016-02-25 01:15:05 --> Foo (host@mask.foo) has joined #example
-                if len >= 8 && tokens[6] == "joined" {
-                    return Some(Ok(Event {
-                        ty: Type::Join {
-                            nick: tokens[3].to_owned().into(),
-                            mask: Some(strip_one(tokens[4]).into()),
-                        },
-                        channel: Some(tokens[7].to_owned().into()),
-                        time: parse_time(&self.context, tokens[0], tokens[1]),
-                    }));
-                }
-                // 2016-02-25 01:36:13 <-- Foo (host@mask.foo) has left #channel (Some reason)
-                else if len >= 9 && tokens[6] == "left" {
-                    return Some(Ok(Event {
-                        ty: Type::Part {
-                            nick: tokens[3].to_owned().into(),
-                            mask: Some(strip_one(&tokens[4]).into()),
-                            reason: Some(strip_one(&rejoin(&tokens[8..], &split_tokens[8..]))
-                                             .into()),
-                        },
-                        channel: Some(tokens[7].to_owned().into()),
-                        time: parse_time(&self.context, tokens[0], tokens[1]),
-                    }));
-                }
-                // 2016-02-25 01:38:55 <-- Foo (host@mask.foo) has quit (Some reason)
-                else if len >= 8 && tokens[6] == "quit" {
-                    return Some(Ok(Event {
-                        ty: Type::Quit {
-                            nick: tokens[3].to_owned().into(),
-                            mask: Some(strip_one(tokens[4]).into()),
-                            reason: Some(strip_one(&rejoin(&tokens[7..], &split_tokens[7..]))
-                                             .into()),
-                        },
-                        time: parse_time(&self.context, tokens[0], tokens[1]),
-                        channel: self.context.channel.clone().map(Into::into),
-                    }));
-                }
+            // 2016-02-25 01:15:05 --> Foo (host@mask.foo) has joined #example
+            if len >= 8 && tokens[5] == "has" && tokens[6] == "joined" {
+                return Some(Ok(Event {
+                    ty: Type::Join {
+                        nick: tokens[3].to_owned().into(),
+                        mask: Some(strip_one(tokens[4]).into()),
+                    },
+                    channel: Some(tokens[7].to_owned().into()),
+                    time: parse_time(&self.context, tokens[0], tokens[1]),
+                }));
+            }
+            // 2016-02-25 01:36:13 <-- Foo (host@mask.foo) has left #channel (Some reason)
+            else if len >= 9 && tokens[5] == "has" && tokens[6] == "left" {
+                return Some(Ok(Event {
+                    ty: Type::Part {
+                        nick: tokens[3].to_owned().into(),
+                        mask: Some(strip_one(&tokens[4]).into()),
+                        reason: Some(strip_one(&rejoin(&tokens[8..], &split_tokens[8..])).into()),
+                    },
+                    channel: Some(tokens[7].to_owned().into()),
+                    time: parse_time(&self.context, tokens[0], tokens[1]),
+                }));
+            }
+            // 2016-02-25 01:38:55 <-- Foo (host@mask.foo) has quit (Some reason)
+            else if len >= 8 && tokens[5] == "has" && tokens[6] == "quit" {
+                return Some(Ok(Event {
+                    ty: Type::Quit {
+                        nick: tokens[3].to_owned().into(),
+                        mask: Some(strip_one(tokens[4]).into()),
+                        reason: Some(strip_one(&rejoin(&tokens[7..], &split_tokens[7..])).into()),
+                    },
+                    time: parse_time(&self.context, tokens[0], tokens[1]),
+                    channel: self.context.channel.clone().map(Into::into),
+                }));
             } else if len >= 3 && tokens[2] == "--" {
                 // 2016-02-25 04:32:15	--	Notice(playbot-veno): ""
                 if len >= 5 && tokens[3].starts_with("Notice(") {
@@ -176,7 +173,7 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 impl Decode for Weechat {
-    fn decode<'a>(&'a mut self,
+    fn decode<'a>(&'a self,
                   context: &'a Context,
                   input: &'a mut BufRead)
                   -> Box<Iterator<Item = ilc_base::Result<Event<'a>>> + 'a> {
@@ -252,7 +249,12 @@ impl Encode for Weechat {
                               from,
                               content))
             }
-            _ => (),
+            _ => {
+                if option_env!("FUSE").is_some() {
+                    panic!("Shouldn't reach here, this is a bug!")
+                }
+                ()
+            }
         }
         Ok(())
     }

@@ -16,3 +16,6 @@ pub use ilc_ops::freq::freq;
 pub use ilc_ops::parse::parse;
 pub use ilc_ops::seen::seen;
 pub use ilc_ops::sort::sort;
+
+pub use ilc_format_weechat::Weechat;
+pub use ilc_format_energymech::Energymech;
