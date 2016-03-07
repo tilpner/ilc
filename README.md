@@ -48,6 +48,12 @@ To compile:
 cargo build --release
 ```
 
+#### Examples
+
+```console
+ilc stats -f w -i full.dated.sorted | jq ".stats.freqs[].lines" | awk '{ total += $1; count++ } END { print total/count }'
+```
+
 #### Usage
 ```console
 Usage:
