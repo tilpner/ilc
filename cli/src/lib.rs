@@ -35,7 +35,7 @@ mod stats;
 
 pub struct Cli {
     pub version: String,
-    pub master_hash: String,
+    pub master_hash: Option<String>,
 }
 
 pub fn main(cli: Cli) {
@@ -44,7 +44,10 @@ pub fn main(cli: Cli) {
         info!("Compiled with FUSEs")
     }
 
-    let version = format!("{} ({})", cli.version, cli.master_hash);
+    let version = match cli.master_hash {
+        Some(ref h) => format!("{} ({})", cli.version, h),
+        None => cli.version.clone(),
+    };
     let args = App::new("ilc")
                    .version(&version[..])
                    .setting(AppSettings::GlobalVersion)

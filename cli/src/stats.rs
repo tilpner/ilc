@@ -13,7 +13,7 @@ use error;
 
 struct StatFormat {
     version: String,
-    master_hash: String,
+    master_hash: Option<String>,
     time: String,
     stats: Stats,
 }
@@ -28,7 +28,9 @@ impl Serialize for StatFormat {
                 where S: Serializer
             {
                 try!(s.serialize_struct_elt("version", &self.0.version));
-                try!(s.serialize_struct_elt("master_hash", &self.0.master_hash));
+                if let &Some(ref h) = &self.0.master_hash {
+                    try!(s.serialize_struct_elt("master_hash", h));
+                }
                 try!(s.serialize_struct_elt("time", &self.0.time));
                 try!(s.serialize_struct_elt("stats", &self.0.stats));
                 Ok(None)

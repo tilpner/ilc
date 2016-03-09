@@ -5,6 +5,7 @@ license = "Apache-2.0"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
 version = "0.3.0"
+build = "build.rs"
 exclude = [".cargo/**"]
 
 [[bin]]
