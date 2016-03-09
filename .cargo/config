@@ -1,0 +1,1 @@
+paths = ["ops", "cli", "base", "formats/weechat", "formats/energymech"]
