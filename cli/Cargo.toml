@@ -6,6 +6,7 @@ homepage = "https://github.com/tilpner/ilc"
 license = "Apache-2.0"
 repository = "https://github.com/tilpner/ilc"
 authors = ["Till Höppner <till@hoeppner.ws>"]
+build = "build.rs"
 
 [features]
 default = ["ilc-format-weechat", "ilc-format-energymech"]
@@ -14,9 +15,15 @@ default = ["ilc-format-weechat", "ilc-format-energymech"]
 log = "0.3.5"
 clap = "2.1.2"
 chrono = "0.2.19"
+serde = "~0.7"
+serde_json = "~0.7"
 env_logger = "0.3.2"
 glob = "0.2.10"
 ilc-base = "~0.2"
 ilc-ops = "~0.1"
 ilc-format-weechat = { optional = true, version = "~0.2" }
 ilc-format-energymech = { optional = true, version = "~0.2" }
+includedir = "~0.2"
+
+[build-dependencies]
+includedir_codegen = "~0.2"

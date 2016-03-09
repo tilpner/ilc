@@ -2,10 +2,11 @@
 extern crate log;
 extern crate blist;
 extern crate bit_set;
+extern crate serde;
 extern crate ilc_base;
 
 mod ageset;
-pub mod freq;
+pub mod stats;
 
 /// No-op log parsing
 pub mod parse {
@@ -219,7 +220,9 @@ pub mod merge {
 
             // Keep non-empty streams
             for (offset, idx) in empty.iter().enumerate() {
-                events.remove(offset + idx);
+                // `remove` returns an iterator. It's empty, but Rust doesn't know that,
+                // so suppress the warning like this.
+                let _ = events.remove(offset + idx);
             }
             empty.clear();
         }

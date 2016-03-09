@@ -1,17 +1,3 @@
-// Copyright 2015 Till Höppner
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 extern crate ilc_base;
 extern crate ilc_ops;
 extern crate ilc_format_weechat;
@@ -22,10 +8,11 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate serde;
+extern crate serde_json;
 extern crate glob;
 
 use ilc_base::{Context, Decode, Encode};
-use ilc_ops::*;
 use ilc_format_weechat::Weechat;
 use ilc_format_energymech::Energymech;
 
@@ -40,19 +27,26 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::{process, usize};
+use std::process;
 use std::error::Error;
 
 mod chain;
+mod stats;
 
-pub fn main() {
+pub struct Cli {
+    pub version: String,
+    pub master_hash: String,
+}
+
+pub fn main(cli: Cli) {
     env_logger::init().unwrap();
     if option_env!("FUSE").is_some() {
         info!("Compiled with FUSEs")
     }
 
+    let version = format!("{} ({})", cli.version, cli.master_hash);
     let args = App::new("ilc")
-                   .version(crate_version!())
+                   .version(&version[..])
                    .setting(AppSettings::GlobalVersion)
                    .setting(AppSettings::VersionlessSubcommands)
                    .setting(AppSettings::ArgRequiredElseHelp)
@@ -115,12 +109,12 @@ pub fn main() {
                                    .about("Parse the input, checking the format"))
                    .subcommand(SubCommand::with_name("convert")
                                    .about("Convert from a source to a target format"))
-                   .subcommand(SubCommand::with_name("freq")
+                   .subcommand(SubCommand::with_name("stats")
                                    .about("Analyse the activity of users by certain metrics")
-                                   .arg(Arg::with_name("count")
+                                   /*.arg(Arg::with_name("count")
                                             .help("The number of items to be displayed")
                                             .takes_value(true)
-                                            .long("count")))
+                                            .long("count"))*/)
                    .subcommand(SubCommand::with_name("seen")
                                    .about("Print the last line a nick was active")
                                    .arg(Arg::with_name("nick")
@@ -139,68 +133,61 @@ pub fn main() {
     let res = match args.subcommand() {
         ("parse", Some(args)) => {
             let e = Environment(&args);
-            parse::parse(&e.context(), &mut e.input(), &mut *e.decoder())
+            ilc_ops::parse::parse(&e.context(), &mut e.input(), &mut *e.decoder())
         }
         ("convert", Some(args)) => {
             let e = Environment(&args);
-            convert::convert(&e.context(),
-                             &mut e.input(),
-                             &mut *e.decoder(),
-                             &mut *e.output(),
-                             &*e.encoder())
+            ilc_ops::convert::convert(&e.context(),
+                                      &mut e.input(),
+                                      &mut *e.decoder(),
+                                      &mut *e.output(),
+                                      &*e.encoder())
         }
-        ("freq", Some(args)) => {
+        ("stats", Some(args)) => {
             let e = Environment(&args);
-            let count = value_t!(args, "count", usize).unwrap_or(usize::MAX);
-            freq::freq(count,
-                       &e.context(),
-                       &mut e.input(),
-                       &mut *e.decoder(),
-                       &mut e.output())
+            let stats = ilc_ops::stats::stats(&e.context(), &mut e.input(), &mut *e.decoder())
+                            .unwrap_or_else(|e| error(Box::new(e)));
+
+            stats::output_as_json(&args, &cli, stats)
         }
         ("seen", Some(args)) => {
             let e = Environment(&args);
             let nick = args.value_of("nick").expect("Required argument <nick> not present");
-            seen::seen(nick,
-                       &e.context(),
-                       &mut e.input(),
-                       &mut *e.decoder(),
-                       &mut *e.output(),
-                       &Weechat)
+            ilc_ops::seen::seen(nick,
+                                &e.context(),
+                                &mut e.input(),
+                                &mut *e.decoder(),
+                                &mut *e.output(),
+                                &Weechat)
         }
         ("sort", Some(args)) => {
             let e = Environment(&args);
-            sort::sort(&e.context(),
-                       &mut e.input(),
-                       &mut *e.decoder(),
-                       &mut *e.output(),
-                       &*e.encoder())
+            ilc_ops::sort::sort(&e.context(),
+                                &mut e.input(),
+                                &mut *e.decoder(),
+                                &mut *e.output(),
+                                &*e.encoder())
         }
         ("dedup", Some(args)) => {
             let e = Environment(&args);
-            dedup::dedup(&e.context(),
-                         &mut e.input(),
-                         &mut *e.decoder(),
-                         &mut *e.output(),
-                         &*e.encoder())
+            ilc_ops::dedup::dedup(&e.context(),
+                                  &mut e.input(),
+                                  &mut *e.decoder(),
+                                  &mut *e.output(),
+                                  &*e.encoder())
         }
         ("merge", Some(args)) => {
             let e = Environment(&args);
 
             let mut inputs = e.inputs();
-            // let mut decoders = e.decoders();
-
             let borrowed_inputs = inputs.iter_mut()
                                         .map(|a| a as &mut BufRead)
                                         .collect();
-            // let borrowed_decoders = decoders.iter_mut()
-            //                                .map(|a| &mut **a as &mut Decode)
-            //                                .collect();
-            merge::merge(&e.context(),
-                         borrowed_inputs,
-                         &mut *e.decoder(),
-                         &mut *e.output(),
-                         &*e.encoder())
+            ilc_ops::merge::merge(&e.context(),
+                                  borrowed_inputs,
+                                  &mut *e.decoder(),
+                                  &mut *e.output(),
+                                  &*e.encoder())
         }
         (sc, _) if !sc.is_empty() => panic!("Unimplemented subcommand `{}`, this is a bug", sc),
         _ => die("No command specified"),
@@ -301,19 +288,6 @@ impl<'a> Environment<'a> {
     pub fn decoder(&self) -> Box<Decode> {
         force_decoder(self.0.value_of("format").or(self.0.value_of("input_format")))
     }
-
-    /* pub fn decoders(&self) -> Vec<Box<Decode>> {
-     * self.0
-     * .value_of("format")
-     * .into_iter()
-     * .chain(self.0
-     * .values_of("input_formats")
-     * .map(|i| Box::new(i) as Box<Iterator<Item = _>>)
-     * .unwrap_or(Box::new(iter::empty()) as Box<Iterator<Item = _>>))
-     * .map(Option::Some)
-     * .map(force_decoder)
-     * .collect()
-     * } */
 
     pub fn encoder(&self) -> Box<Encode> {
         force_encoder(self.0.value_of("format").or(self.0.value_of("output_format")))
