@@ -1,7 +1,7 @@
 [package]
 authors = ["Till Hoeppner <till@hoeppner.ws>"]
 description = "IRC log converter/collector/cruncher"
-license = "Apache-2.0"
+license = "BSD-3-Clause"
 name = "ilc"
 repository = "https://github.com/tilpner/ilc"
 version = "0.3.0"
