@@ -3,6 +3,7 @@ extern crate ilc_cli;
 use ilc_cli::Cli;
 
 static MASTER_HASH: &'static str = include_str!("../.git/refs/heads/master");
+static NOTICE: &'static str = include_str!("../NOTICE");
 
 fn main() {
     ilc_cli::main(Cli {
@@ -12,5 +13,6 @@ fn main() {
         } else {
             Some(MASTER_HASH.trim_right().to_owned())
         },
+        notice: NOTICE,
     });
 }

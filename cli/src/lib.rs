@@ -36,6 +36,7 @@ mod stats;
 pub struct Cli {
     pub version: String,
     pub master_hash: Option<String>,
+    pub notice: &'static str,
 }
 
 pub fn main(cli: Cli) {
@@ -108,16 +109,16 @@ pub fn main(cli: Cli) {
                             .takes_value(true)
                             .long("output")
                             .short("o"))
+                   .arg(Arg::with_name("notice")
+                            .help("Print all the notices/licenses")
+                            .takes_value(false)
+                            .long("notice"))
                    .subcommand(SubCommand::with_name("parse")
                                    .about("Parse the input, checking the format"))
                    .subcommand(SubCommand::with_name("convert")
                                    .about("Convert from a source to a target format"))
                    .subcommand(SubCommand::with_name("stats")
-                                   .about("Analyse the activity of users by certain metrics")
-                                   /*.arg(Arg::with_name("count")
-                                            .help("The number of items to be displayed")
-                                            .takes_value(true)
-                                            .long("count"))*/)
+                                   .about("Analyse the activity of users by certain metrics"))
                    .subcommand(SubCommand::with_name("seen")
                                    .about("Print the last line a nick was active")
                                    .arg(Arg::with_name("nick")
@@ -132,6 +133,11 @@ pub fn main(cli: Cli) {
                                    .about("Merges the input logs. This has to keep everything \
                                            in memory"))
                    .get_matches();
+
+    if args.is_present("notice") {
+        println!("{}", cli.notice);
+        process::exit(0)
+    }
 
     let res = match args.subcommand() {
         ("parse", Some(args)) => {
