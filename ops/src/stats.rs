@@ -1,15 +1,21 @@
 //! Per-nick word/line statistics
-
-use ilc_base::{self, Context, Decode, Event};
+use ilc_base::{self, Context, Decode, Event, Time};
 use ilc_base::event::Type;
 
 use std::collections::HashMap;
 use std::io::BufRead;
 
+use chrono::{Datelike, NaiveDateTime, Timelike};
+
 use serde::ser::{MapVisitor, Serialize, Serializer};
+
+pub type Day = [u32; 24];
+/// Weeks start on mondays.
+pub type Week = [Day; 7];
 
 pub struct Stats {
     pub freqs: HashMap<String, NickStat>,
+    pub week: Week,
 }
 
 impl Serialize for Stats {
@@ -22,6 +28,7 @@ impl Serialize for Stats {
                 where S: Serializer
             {
                 try!(s.serialize_struct_elt("freqs", &self.0.freqs));
+                try!(s.serialize_struct_elt("week", &self.0.week));
                 Ok(None)
             }
 
@@ -91,11 +98,19 @@ fn strip_nick(s: &str) -> &str {
 /// Return all active nicks, with lines, words and words per lines counted.
 pub fn stats(ctx: &Context, input: &mut BufRead, decoder: &mut Decode) -> ilc_base::Result<Stats> {
     let mut freqs: HashMap<String, NickStat> = HashMap::new();
+    let mut week: Week = [[0; 24]; 7];
 
     for e in decoder.decode(&ctx, input) {
         let m = try!(e);
         match m {
-            Event { ty: Type::Msg { ref from, ref content, .. }, .. } => {
+            Event { ty: Type::Msg { ref from, ref content, .. }, ref time, .. } => {
+                if let &Time::Timestamp(stamp) = time {
+                    let date = NaiveDateTime::from_timestamp(stamp, 0);
+                    let dow = date.weekday().num_days_from_monday() as usize;
+                    let hour = date.hour() as usize;
+                    week[dow][hour] += 1;
+                }
+
                 let nick = strip_nick(from);
                 if freqs.contains_key(nick) {
                     let p: &mut NickStat = freqs.get_mut(nick).unwrap();
@@ -119,5 +134,8 @@ pub fn stats(ctx: &Context, input: &mut BufRead, decoder: &mut Decode) -> ilc_ba
         }
     }
 
-    Ok(Stats { freqs: freqs })
+    Ok(Stats {
+        freqs: freqs,
+        week: week,
+    })
 }

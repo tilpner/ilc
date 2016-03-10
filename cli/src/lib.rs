@@ -52,15 +52,17 @@ pub fn main(cli: Cli) {
     let args = App::new("ilc")
                    .version(&version[..])
                    .setting(AppSettings::GlobalVersion)
+                   .setting(AppSettings::AllowLeadingHyphen)
+                   .setting(AppSettings::UnifiedHelpMessage)
                    .setting(AppSettings::VersionlessSubcommands)
                    .setting(AppSettings::ArgRequiredElseHelp)
                    .author("Till Höppner <till@hoeppner.ws>")
                    .about("A converter and statistics utility for IRC log files")
-                   .arg(Arg::with_name("timezone")
-                            .help("UTC offset in the direction of the western hemisphere")
+                   .arg(Arg::with_name("time")
+                            .help("Timestamp offset, in seconds")
                             .global(true)
                             .takes_value(true)
-                            .long("timezone")
+                            .long("timeoffset")
                             .short("t"))
                    .arg(Arg::with_name("date")
                             .help("Override the date for this log, ISO 8601, YYYY-MM-DD")
@@ -101,6 +103,7 @@ pub fn main(cli: Cli) {
                             .global(true)
                             .takes_value(true)
                             .multiple(true)
+                            .number_of_values(1)
                             .long("input")
                             .short("i"))
                    .arg(Arg::with_name("output_file")
@@ -114,24 +117,32 @@ pub fn main(cli: Cli) {
                             .takes_value(false)
                             .long("notice"))
                    .subcommand(SubCommand::with_name("parse")
-                                   .about("Parse the input, checking the format"))
+                                   .about("Parse the input, checking the format")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("convert")
-                                   .about("Convert from a source to a target format"))
+                                   .about("Convert from a source to a target format")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("stats")
-                                   .about("Analyse the activity of users by certain metrics"))
+                                   .about("Analyse the activity of users by certain metrics")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("seen")
                                    .about("Print the last line a nick was active")
+                                   .setting(AppSettings::AllowLeadingHyphen)
                                    .arg(Arg::with_name("nick")
                                             .help("The nick you're looking for")
                                             .takes_value(true)
                                             .required(true)
                                             .index(1)))
-                   .subcommand(SubCommand::with_name("sort").about("Sorts a log by time"))
+                   .subcommand(SubCommand::with_name("sort")
+                                   .about("Sorts a log by time")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("dedup")
-                                   .about("Removes duplicate log entries in close proximity"))
+                                   .about("Removes duplicate log entries in close proximity")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("merge")
                                    .about("Merges the input logs. This has to keep everything \
-                                           in memory"))
+                                           in memory")
+                                   .setting(AppSettings::AllowLeadingHyphen))
                    .get_matches();
 
     if args.is_present("notice") {
@@ -223,6 +234,21 @@ pub fn die(s: &str) -> ! {
     process::exit(1)
 }
 
+macro_rules! error {
+    ($code: expr, $fmt:expr) => {{
+        use std::io::Write;
+        let err = std::io::stderr();
+        let _ = writeln!(&mut err.lock(), $fmt);
+        std::process::exit($code);
+    }};
+    ($code: expr, $fmt:expr, $($arg:tt)*) => {{
+        use std::io::Write;
+        let err = std::io::stderr();
+        let _ = writeln!(&mut err.lock(), $fmt, $($arg)*);
+        std::process::exit($code);
+    }};
+}
+
 pub fn decoder(format: &str) -> Option<Box<Decode>> {
     match format {
         "energymech" | "em" => Some(Box::new(Energymech)),
@@ -252,7 +278,7 @@ pub fn force_decoder(s: Option<&str>) -> Box<Decode> {
     };
     match decoder(&inf) {
         Some(d) => d,
-        None => die(&format!("The format `{}` is unknown to me", inf)),
+        None => error!(2, "The format `{}` is unknown to me", inf),
     }
 }
 
@@ -263,7 +289,7 @@ pub fn force_encoder<'a>(s: Option<&str>) -> Box<Encode> {
     };
     match encoder(&outf) {
         Some(e) => e,
-        None => die(&format!("The format `{}` is unknown to me", outf)),
+        None => error!(2, "The format `{}` is unknown to me", outf),
     }
 }
 
@@ -306,8 +332,8 @@ impl<'a> Environment<'a> {
 
 pub fn build_context(args: &ArgMatches) -> Context {
     let mut context = Context {
-        timezone: FixedOffset::west(args.value_of("timezone")
-                                        .and_then(|s| s.parse().ok())
+        timezone: FixedOffset::west(args.value_of("time")
+                                        .and_then(|s| s.parse::<i32>().ok())
                                         .unwrap_or(0)),
         override_date: args.value_of("date").and_then(|d| NaiveDate::from_str(&d).ok()),
         channel: args.value_of("channel").map(str::to_owned).clone(),
@@ -325,7 +351,7 @@ pub fn build_context(args: &ArgMatches) -> Context {
                     context.override_date = Some(date);
                 }
             }
-            _n => die("Too many input files, can't infer date"),
+            n => error!(3, "Too many input files ({}), can't infer date", n),
         }
     }
     context

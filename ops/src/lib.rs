@@ -3,6 +3,7 @@ extern crate log;
 extern crate blist;
 extern crate bit_set;
 extern crate serde;
+extern crate chrono;
 extern crate ilc_base;
 
 mod ageset;
