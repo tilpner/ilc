@@ -210,8 +210,8 @@ impl<'a> Type<'a> {
             &TopicChange { .. } => "topic_change",
             &Kick { .. } => "kick",
             &Mode { .. } => "mode",
-            &Connect { .. } => "connect",
-            &Disconnect { .. } => "disconnect",
+            &Connect => "connect",
+            &Disconnect => "disconnect",
         }
     }
 
