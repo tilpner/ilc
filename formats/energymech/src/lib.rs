@@ -34,7 +34,7 @@ impl<'a> Iterator for Iter<'a> {
             let m = time[4..6].parse::<u32>().unwrap();
             let s = time[7..9].parse::<u32>().unwrap();
             if let Some(date) = context.override_date {
-                Time::Timestamp(context.timezone
+                Time::Timestamp(context.timezone_in
                                        .from_local_date(&date)
                                        .and_time(NaiveTime::from_hms(h, m, s))
                                        .single()
@@ -236,35 +236,35 @@ impl Encode for Energymech {
             &Event { ty: Type::Msg { ref from, ref content }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] <{}> {}",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               from,
                               content))
             }
             &Event { ty: Type::Notice { ref from, ref content }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] -{}- {}",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               from,
                               content))
             }
             &Event { ty: Type::Action { ref from, ref content }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] * {} {}",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               from,
                               content))
             }
             &Event { ty: Type::Nick { ref old_nick, ref new_nick }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** {} is now known as {}",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               old_nick,
                               new_nick))
             }
             &Event { ty: Type::Mode { ref nick, ref mode, ref masks }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** {} sets mode: {} {}",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               nick.as_ref().expect("Nickname not present, but required."),
                               mode,
                               masks))
@@ -272,14 +272,14 @@ impl Encode for Energymech {
             &Event { ty: Type::Join { ref nick, ref mask }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** Joins: {} ({})",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               nick,
                               mask.as_ref().expect("Mask not present, but required.")))
             }
             &Event { ty: Type::Part { ref nick, ref mask, ref reason }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** Parts: {} ({}) ({})",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               nick,
                               mask.as_ref().expect("Mask not present, but required."),
                               reason.as_ref().unwrap_or(&Cow::Borrowed(""))))
@@ -287,7 +287,7 @@ impl Encode for Energymech {
             &Event { ty: Type::Quit { ref nick, ref mask, ref reason }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** Quits: {} ({}) ({})",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               nick,
                               mask.as_ref().expect("Mask not present, but required."),
                               reason.as_ref().expect("Reason not present, but required.")))
@@ -295,7 +295,7 @@ impl Encode for Energymech {
             &Event { ty: Type::TopicChange { ref nick, ref new_topic }, ref time, .. } => {
                 try!(writeln!(&mut output,
                               "[{}] *** {} changes topic to '{}'",
-                              time.with_format(&context.timezone, TIME_FORMAT),
+                              time.with_format(&context.timezone_out, TIME_FORMAT),
                               nick.as_ref().expect("Nick not present, but required."),
                               new_topic))
             }

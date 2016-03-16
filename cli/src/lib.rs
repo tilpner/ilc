@@ -64,11 +64,16 @@ pub fn main(cli: Cli) {
                    .author("Till Höppner <till@hoeppner.ws>")
                    .about("A converter and statistics utility for IRC log files")
                    .arg(Arg::with_name("time")
-                            .help("Timestamp offset, in seconds")
+                            .help("Timestamp offset of input events, in seconds")
                             .global(true)
                             .takes_value(true)
-                            .long("timeoffset")
+                            .long("time_in")
                             .short("t"))
+                   .arg(Arg::with_name("time_out")
+                            .help("Timestamp offset for output events, in seconds")
+                            .global(true)
+                            .takes_value(true)
+                            .long("time_out"))
                    .arg(Arg::with_name("date")
                             .help("Override the date for this log, ISO 8601, YYYY-MM-DD")
                             .global(true)
@@ -390,9 +395,12 @@ impl<'a> Environment<'a> {
 
 pub fn build_context(args: &ArgMatches) -> Context {
     let mut context = Context {
-        timezone: FixedOffset::west(args.value_of("time")
-                                        .and_then(|s| s.parse::<i32>().ok())
-                                        .unwrap_or(0)),
+        timezone_in: FixedOffset::east(args.value_of("time")
+                                           .and_then(|s| s.parse::<i32>().ok())
+                                           .unwrap_or(0)),
+        timezone_out: FixedOffset::east(args.value_of("time_out")
+                                            .and_then(|s| s.parse::<i32>().ok())
+                                            .unwrap_or(0)),
         override_date: args.value_of("date").and_then(|d| NaiveDate::from_str(&d).ok()),
         channel: args.value_of("channel").map(str::to_owned).clone(),
     };
