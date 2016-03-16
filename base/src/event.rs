@@ -150,25 +150,83 @@ pub enum Type<'a> {
 }
 
 impl<'a> Type<'a> {
+    pub fn actor(&self) -> Option<&str> {
+        use self::Type::*;
+        match self {
+            &Msg { ref from, .. } => Some(from),
+            &Action { ref from, .. } => Some(from),
+            &Join { ref nick, .. } => Some(nick),
+            &Part { ref nick, .. } => Some(nick),
+            &Quit { ref nick, .. } => Some(nick),
+            &Nick { ref old_nick, .. } => Some(old_nick),
+            &Notice { ref from, .. } => Some(from),
+            &Kick { ref kicking_nick, .. } => kicking_nick.as_ref().map(|s| &*s as &str),
+            &TopicChange { ref nick, .. } => nick.as_ref().map(|s| &*s as &str),
+            &Mode { ref nick, .. } => nick.as_ref().map(|s| &*s as &str),
+            _ => None,
+        }
+    }
+
     pub fn involves(&self, needle: &str) -> bool {
         use self::Type::*;
         match self {
-            &Msg { ref from, .. } => from == needle,
-            &Action { ref from, .. } => from == needle,
+            &Msg { ref from, ref content, .. } => from == needle || content.contains(needle),
+            &Action { ref from, ref content, .. } => from == needle || content.contains(needle),
             &Join { ref nick, .. } => nick == needle,
-            &Part { ref nick, .. } => nick == needle,
-            &Quit { ref nick, .. } => nick == needle,
-            &Nick { ref old_nick, ref new_nick, .. } => old_nick == needle || new_nick == needle,
-            &Notice { ref from, .. } => from == needle,
-            &Kick { ref kicked_nick, ref kicking_nick, .. } => {
-                *kicked_nick == Cow::Borrowed(needle) ||
-                kicking_nick.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle))
+            &Part { ref nick, ref reason, .. } => {
+                nick == needle || reason.as_ref().map_or(false, |r| r.contains(needle))
             }
-            &TopicChange { ref nick, .. } => nick.as_ref().map_or(false, |k| k.as_ref() == needle),
+            &Quit { ref nick, ref reason, .. } => {
+                nick == needle || reason.as_ref().map_or(false, |r| r.contains(needle))
+            }
+            &Nick { ref old_nick, ref new_nick, .. } => old_nick == needle || new_nick == needle,
+            &Notice { ref from, ref content, .. } => from == needle || content.contains(needle),
+            &Kick { ref kicked_nick, ref kicking_nick, ref kick_message, .. } => {
+                *kicked_nick == Cow::Borrowed(needle) ||
+                kicking_nick.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle)) ||
+                kick_message.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle))
+            }
+            &TopicChange { ref nick, ref new_topic, .. } => {
+                nick.as_ref().map_or(false, |k| k.as_ref() == needle) || new_topic.contains(needle)
+            }
             &Mode { ref nick, .. } => {
                 nick.as_ref().map_or(false, |k| k.as_ref() == Cow::Borrowed(needle))
             }
             _ => false,
+        }
+    }
+
+    pub fn type_desc(&self) -> &'static str {
+        use self::Type::*;
+        match self {
+            &Msg { .. } => "message",
+            &Action { .. } => "action",
+            &Join { .. } => "join",
+            &Part { .. } => "part",
+            &Quit { .. } => "quit",
+            &Nick { .. } => "nick",
+            &Notice { .. } => "notice",
+            &Topic { .. } => "topic",
+            &TopicChange { .. } => "topic_change",
+            &Kick { .. } => "kick",
+            &Mode { .. } => "mode",
+            &Connect { .. } => "connect",
+            &Disconnect { .. } => "disconnect",
+        }
+    }
+
+    pub fn text(&self) -> Option<&str> {
+        use self::Type::*;
+        match self {
+            &Msg { ref content, .. } => Some(content),
+            &Action { ref content, .. } => Some(content),
+            &Part { ref reason, .. } => reason.as_ref().map(|s| s as &str),
+            &Quit { ref reason, .. } => reason.as_ref().map(|s| s as &str),
+            &Notice { ref content, .. } => Some(content),
+            &Kick { ref kick_message, .. } => kick_message.as_ref().map(|s| s as &str),
+            &Topic { ref topic, .. } => Some(topic),
+            &TopicChange { ref new_topic, .. } => Some(new_topic),
+            _ => None,
         }
     }
 }

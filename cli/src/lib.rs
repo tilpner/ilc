@@ -11,16 +11,20 @@ extern crate env_logger;
 extern crate serde;
 extern crate serde_json;
 extern crate glob;
+extern crate regex;
 
 use ilc_base::{Context, Decode, Encode};
+use ilc_ops::convert::{Filter, Operator, Subject};
 use ilc_format_weechat::Weechat;
 use ilc_format_energymech::Energymech;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, SubCommand};
 
 use chrono::{FixedOffset, NaiveDate};
 
 use glob::glob;
+
+use regex::Regex;
 
 use std::str::FromStr;
 use std::fs::File;
@@ -29,6 +33,7 @@ use std::ffi::OsStr;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::process;
 use std::error::Error;
+
 
 mod chain;
 mod stats;
@@ -121,7 +126,32 @@ pub fn main(cli: Cli) {
                                    .setting(AppSettings::AllowLeadingHyphen))
                    .subcommand(SubCommand::with_name("convert")
                                    .about("Convert from a source to a target format")
-                                   .setting(AppSettings::AllowLeadingHyphen))
+                                   .setting(AppSettings::AllowLeadingHyphen)
+                                   .arg(Arg::with_name("subject")
+                                            .takes_value(true)
+                                            .requires("operator")
+                                            .long("if")
+                                            .possible_values(&["nick", "time", "type", "text"]))
+                                   .arg(Arg::with_name("op_not").long("not"))
+                                   .arg(Arg::with_name("op_exactly")
+                                            .takes_value(true)
+                                            .long("exactly"))
+                                   .arg(Arg::with_name("op_contains")
+                                            .takes_value(true)
+                                            .long("contains"))
+                                   .arg(Arg::with_name("op_greater")
+                                            .takes_value(true)
+                                            .long("greater"))
+                                   .arg(Arg::with_name("op_less").takes_value(true).long("less"))
+                                   .arg(Arg::with_name("op_matches")
+                                            .takes_value(true)
+                                            .long("matches"))
+                                   .group(ArgGroup::with_name("operator").args(&["op_exactly",
+                                                                                 "op_contains",
+                                                                                 "op_equal",
+                                                                                 "op_greater",
+                                                                                 "op_less",
+                                                                                 "op_matches"])))
                    .subcommand(SubCommand::with_name("stats")
                                    .about("Analyse the activity of users by certain metrics")
                                    .setting(AppSettings::AllowLeadingHyphen))
@@ -157,11 +187,57 @@ pub fn main(cli: Cli) {
         }
         ("convert", Some(args)) => {
             let e = Environment(&args);
+            let subject = match args.value_of("subject") {
+                Some("nick") => Some(Subject::Nick),
+                Some("time") => Some(Subject::Time),
+                Some("type") => Some(Subject::Type),
+                Some("text") => Some(Subject::Text),
+                _ => None,
+            };
+
+            let op = {
+                if args.is_present("operator") {
+                    if let Some(sub) = args.value_of("op_exactly") {
+                        Some(Operator::Exactly(sub.into()))
+                    } else if let Some(sub) = args.value_of("op_contains") {
+                        Some(Operator::Contains(sub.into()))
+                    } else if let Some(sub) = args.value_of("op_matches") {
+                        match Regex::new(sub) {
+                            Ok(regex) => Some(Operator::Matches(regex)),
+                            Err(e) => error(Box::new(e)),
+                        }
+                    } else {
+                        // must be numeric operator if not op_exactly, op_contains, or op_matches
+                        // unwrap is safe because of .is_present("operator") earlier
+                        let num = match args.value_of("operator").unwrap().parse::<i64>() {
+                            Ok(n) => n,
+                            Err(e) => error(Box::new(e)),
+                        };
+
+                        if args.is_present("op_equal") {
+                            Some(Operator::Equal(num))
+                        } else if args.is_present("op_greater") {
+                            Some(Operator::Greater(num))
+                        } else if args.is_present("op_less") {
+                            Some(Operator::Less(num))
+                        } else {
+                            None
+                        }
+                    }
+                } else {
+                    None
+                }
+            };
+
+            let filter = subject.and_then(|s| op.map(|o| Filter(s, o)));
+
             ilc_ops::convert::convert(&e.context(),
                                       &mut e.input(),
                                       &mut *e.decoder(),
                                       &mut *e.output(),
-                                      &*e.encoder())
+                                      &*e.encoder(),
+                                      filter,
+                                      args.is_present("op_not"))
         }
         ("stats", Some(args)) => {
             let e = Environment(&args);

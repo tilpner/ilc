@@ -5,9 +5,11 @@ extern crate bit_set;
 extern crate serde;
 extern crate chrono;
 extern crate ilc_base;
+extern crate regex;
 
 mod ageset;
 pub mod stats;
+pub mod convert;
 
 /// No-op log parsing
 pub mod parse {
@@ -22,27 +24,6 @@ pub mod parse {
                 Ok(e) => debug!("{:?}", e),
                 Err(e) => error!("{:?}", e),
             }
-        }
-        Ok(())
-    }
-}
-
-/// Log format conversion
-pub mod convert {
-    use ilc_base::{self, Context, Decode, Encode};
-    use std::io::{BufRead, Write};
-
-    /// Convert from one format to another, not necessarily different, format. In combination with a
-    /// timezone offset, this can be used to correct the timestamps.
-    /// Will return `Err` and abort conversion if the decoder yields `Err` or re-encoding fails.
-    pub fn convert(ctx: &Context,
-                   input: &mut BufRead,
-                   decoder: &mut Decode,
-                   output: &mut Write,
-                   encoder: &Encode)
-                   -> ilc_base::Result<()> {
-        for e in decoder.decode(&ctx, input) {
-            try!(encoder.encode(&ctx, output, &try!(e)));
         }
         Ok(())
     }

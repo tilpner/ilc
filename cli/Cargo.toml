@@ -15,6 +15,7 @@ default = ["ilc-format-weechat", "ilc-format-energymech"]
 log = "0.3.5"
 clap = "2.1.2"
 chrono = "0.2.19"
+regex = "0.1.55"
 serde = "~0.7"
 serde_json = "~0.7"
 env_logger = "0.3.2"

@@ -10,6 +10,7 @@ authors = ["Till Höppner <till@hoeppner.ws>"]
 [dependencies]
 log = "0.3.5"
 chrono = "0.2.19"
+regex = "0.1.54"
 ilc-base = "~0.2"
 blist = "0.0.4"
 bit-set = "0.3.0"
