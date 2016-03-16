@@ -12,7 +12,6 @@ pub use ilc_ops::convert::{self, convert};
 pub use ilc_ops::dedup::{self, dedup};
 pub use ilc_ops::stats::{self, stats};
 pub use ilc_ops::parse::{self, parse};
-pub use ilc_ops::seen::{self, seen};
 pub use ilc_ops::sort::{self, sort};
 pub use ilc_ops::merge::{self, merge};
 

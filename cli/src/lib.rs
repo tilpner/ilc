@@ -155,14 +155,6 @@ pub fn main(cli: Cli) {
                    .subcommand(SubCommand::with_name("stats")
                                    .about("Analyse the activity of users by certain metrics")
                                    .setting(AppSettings::AllowLeadingHyphen))
-                   .subcommand(SubCommand::with_name("seen")
-                                   .about("Print the last line a nick was active")
-                                   .setting(AppSettings::AllowLeadingHyphen)
-                                   .arg(Arg::with_name("nick")
-                                            .help("The nick you're looking for")
-                                            .takes_value(true)
-                                            .required(true)
-                                            .index(1)))
                    .subcommand(SubCommand::with_name("sort")
                                    .about("Sorts a log by time")
                                    .setting(AppSettings::AllowLeadingHyphen))
@@ -245,16 +237,6 @@ pub fn main(cli: Cli) {
                             .unwrap_or_else(|e| error(Box::new(e)));
 
             stats::output_as_json(&args, &cli, stats)
-        }
-        ("seen", Some(args)) => {
-            let e = Environment(&args);
-            let nick = args.value_of("nick").expect("Required argument <nick> not present");
-            ilc_ops::seen::seen(nick,
-                                &e.context(),
-                                &mut e.input(),
-                                &mut *e.decoder(),
-                                &mut *e.output(),
-                                &Weechat)
         }
         ("sort", Some(args)) => {
             let e = Environment(&args);

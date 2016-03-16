@@ -29,37 +29,6 @@ pub mod parse {
     }
 }
 
-/// Last-seen of nicks
-pub mod seen {
-    use ilc_base::{self, Context, Decode, Encode, Event};
-    use std::io::{BufRead, Write};
-
-    /// Return the last message of a given nickname, searching from the beginning of the logs.
-    /// Will return `Err` if the decoder yields `Err`. This relies on absolute timestamps, and
-    /// behaviour without full dates is undefined.
-    pub fn seen(nick: &str,
-                ctx: &Context,
-                input: &mut BufRead,
-                decoder: &mut Decode,
-                output: &mut Write,
-                encoder: &Encode)
-                -> ilc_base::Result<()> {
-        let mut last: Option<Event> = None;
-        for e in decoder.decode(&ctx, input) {
-            let m: Event = try!(e);
-            if m.ty.involves(nick) &&
-               last.as_ref().map_or(true,
-                                    |last| m.time.as_timestamp() > last.time.as_timestamp()) {
-                last = Some(m)
-            }
-        }
-        if let Some(ref m) = last {
-            try!(encoder.encode(&ctx, output, m));
-        }
-        Ok(())
-    }
-}
-
 /// Internal (as opposed to external, not to be confused with private) log sorting
 pub mod sort {
     use ilc_base::{self, Context, Decode, Encode, Event};
