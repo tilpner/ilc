@@ -2,6 +2,9 @@
 
 set -ex
 
+# Generate artifacts for release
+cargo build --target $TARGET --release
+
 # create a "staging" directory
 mkdir staging
 
@@ -10,5 +13,5 @@ cp target/$TARGET/release/ilc* staging
 
 cd staging
 
-# release tarball will look like 'rust-everywhere-v1.2.3-x86_64-unknown-linux-gnu.tar.gz'
+# release tarball will look like 'ilc-unknown-linux-gnu.tar.gz'
 tar czf ../${PROJECT_NAME}-${TARGET}.tar.gz *

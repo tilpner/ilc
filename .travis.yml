@@ -1,15 +1,6 @@
 sudo: false
 
-language: rust
-
-rust:
-  - stable
-  - beta
-  - nightly
-
-os:
-  - linux
-  - osx
+language: generic
 
 env:
   global:
@@ -17,71 +8,90 @@ env:
     - PROJECT_NAME=ilc
 
 matrix:
-  allow_failures:
-    - rust: beta
-    - rust: nightly
-    - os: osx
-
-  # Clear the whole matrix
-  exclude:
-    - os: linux
-    - os: osx
-    - rust: stable
-    - rust: beta
-    - rust: nightly
-
-  # Add each target manually
-  # pattern shown below
   include:
-    # WARNING Experimental target. Tests are executed using qemu user emulation, but this approach
-    # may have problems when too many threads are spawned. Also, by the next Rust stable release,
-    # this target will be replaced by `armv7-unknown-linux-gnueabihf`.
+    # Stable channel
     - os: linux
-      rust: nightly
-      env: TARGET=arm-unknown-linux-gnueabihf
-      # Extra packages only for this build job
+      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=stable
+      # Extra packages only for this job
       addons:
         apt:
-          packages:
+          packages: &arm_unknown_linux_gnueabihf
             # Cross compiler and cross compiled C libraries
             - gcc-arm-linux-gnueabihf
             - libc6-armhf-cross
             - libc6-dev-armhf-cross
             # Emulator
             - qemu-user
+    - os: osx
+      env: TARGET=i686-apple-darwin CHANNEL=stable
     - os: linux
-      rust: stable
-      env: TARGET=i686-unknown-linux-gnu
+      env: TARGET=i686-unknown-linux-gnu CHANNEL=stable
       addons:
         apt:
-          packages:
+          packages: &i686_unknown_linux_gnu
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
+    - os: osx
+      env: TARGET=x86_64-apple-darwin CHANNEL=stable
     - os: linux
-      rust: stable
-      env: TARGET=x86_64-unknown-linux-gnu
+      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=stable
     - os: linux
-      rust: nightly
-      env: TARGET=x86_64-unknown-linux-musl
+      env: TARGET=x86_64-unknown-linux-musl CHANNEL=stable
+    # Beta channel
+    - os: linux
+      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=beta
       addons:
         apt:
-          packages:
-            - musl-tools
+          # Use the same packages the stable version uses
+          packages: *arm_unknown_linux_gnueabihf
     - os: osx
-      rust: stable
-      env: TARGET=i686-apple-darwin
+      env: TARGET=i686-apple-darwin CHANNEL=beta
+    - os: linux
+      env: TARGET=i686-unknown-linux-gnu CHANNEL=beta
+      addons:
+        apt:
+          packages: *i686_unknown_linux_gnu
     - os: osx
-      rust: stable
-      env: TARGET=x86_64-apple-darwin
+      env: TARGET=x86_64-apple-darwin CHANNEL=beta
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=beta
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-musl CHANNEL=beta
+    # Nightly channel
+    - os: linux
+      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=nightly
+      addons:
+        apt:
+          # Use the same packages the stable version uses
+          packages: *arm_unknown_linux_gnueabihf
+    - os: osx
+      env: TARGET=i686-apple-darwin CHANNEL=nightly
+    - os: linux
+      env: TARGET=i686-unknown-linux-gnu CHANNEL=nightly
+      addons:
+        apt:
+          packages: *i686_unknown_linux_gnu
+    - os: osx
+      env: TARGET=x86_64-apple-darwin CHANNEL=nightly
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-gnu CHANNEL=nightly
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-musl CHANNEL=nightly
+  allow_failures:
+    # NOTE This target appears to be broken on Rust 1.7.0
+    # TODO You may want to remove this entry by the time Rust 1.8.0 is out
+    - os: linux
+      env: TARGET=arm-unknown-linux-gnueabihf CHANNEL=stable
 
 install:
-  - sh ci/install.sh
+  - export PATH="$PATH:~/multirust/bin"
+  - bash ci/install.sh
 
 script:
-  - sh ci/script.sh
+  - bash ci/script.sh
 
 before_deploy:
-  - sh ci/before_deploy.sh
+  - bash ci/before_deploy.sh
 
 deploy:
   provider: releases
@@ -97,6 +107,7 @@ deploy:
   skip_cleanup: true
   # deploy when a new tag is pushed
   on:
+    condition: $TRAVIS_RUST_VERSION = stable
     tags: true
 
 branches:
