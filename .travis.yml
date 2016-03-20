@@ -117,7 +117,7 @@ deploy:
   skip_cleanup: true
   # deploy when a new tag is pushed
   on:
-    condition: $TRAVIS_RUST_VERSION = stable
+    condition: $CHANNEL = stable
     tags: true
 
 branches:
